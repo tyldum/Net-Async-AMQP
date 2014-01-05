@@ -20,13 +20,15 @@ Net::Async::AMQP - provides client interface to AMQP using L<IO::Async>
    host => 'localhost',
    user => 'guest',
    pass => 'guest',
-   on_connected => sub {
-   }
+   on_connected => sub { ... }
  );
+ $loop->run;
 
 =head1 DESCRIPTION
 
-Does AMQP things.
+Does AMQP things. Note that the API may change before the stable 1.000
+release - L</SEE ALSO> has some alternative modules if you're looking for
+something that has been around for longer.
 
 =cut
 
@@ -41,14 +43,52 @@ use List::UtilsBy qw(extract_by);
 use File::ShareDir ();
 use Scalar::Util qw(weaken);
 
+=head1 CONSTANTS
+
+=head2 AUTH_MECH
+
+Defines the mechanism used for authentication. Currently only AMQPLAIN
+is supported.
+
+=cut
+
 use constant AUTH_MECH             => 'AMQPLAIN';
+
+=head2 PAYLOAD_HEADER_LENGTH
+
+Length of header used in payload messages. Defined by the AMQP standard.
+
+=cut
+
 use constant PAYLOAD_HEADER_LENGTH => 8;
+
+=head2 MAX_FRAME_SIZE
+
+Largest amount of data we'll attempt to send in a single frame. Actual
+frame limit will be negotiated with the remote server.
+
+=cut
+
 use constant MAX_FRAME_SIZE        => 262144;
 
-use constant DEBUG => $ENV{NET_ASYNC_AMQP_DEBUG} // 0;
+=head2 DEBUG
 
-# interval in seconds between heartbeat frames, zero to disable
-use constant HEARTBEAT_INTERVAL => $ENV{NET_ASYNC_AMQP_HEARTBEAT_INTERVAL} // 60;
+Debugging flag - set C<PERL_AMQP_DEBUG> to 1 in the environment to enable
+informational messages to STDERR.
+
+=cut
+
+use constant DEBUG => $ENV{PERL_AMQP_DEBUG} // 0;
+
+=head2 HEARTBEAT_INTERVAL
+
+Interval in seconds between heartbeat frames, zero to disable. Can be
+overridden by C<PERL_AMQP_HEARTBEAT_INTERVAL> in the environment, default
+is 60s.
+
+=cut
+
+use constant HEARTBEAT_INTERVAL => $ENV{PERL_AMQP_HEARTBEAT_INTERVAL} // 60;
 
 use Net::Async::AMQP::Channel;
 use Net::Async::AMQP::Queue;
@@ -91,6 +131,8 @@ BEGIN {
 	}
 
 }
+
+=head1 PACKAGE VARIABLES
 
 =head2 $XML_SPEC
 
