@@ -5,7 +5,7 @@ use warnings;
 use parent qw(Mixin::Event::Dispatch);
 use constant EVENT_DISPATCH_ON_FALLBACK => 0;
 
-our $VERSION = '0.001';
+our $VERSION = '0.003';
 
 =head1 NAME
 
@@ -541,7 +541,7 @@ sub close {
     my %args = @_;
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-        method_frame => Net::AMQP::Protocol::Channel::Close->new(
+        method_frame => Net::AMQP::Protocol::Connection::Close->new(
 			reply_code => $args{code} // 320,
 			reply_text => $args{text} // 'Request connection close',
 		),

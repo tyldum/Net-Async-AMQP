@@ -1,4 +1,5 @@
 package Net::Async::AMQP::Queue;
+
 use strict;
 use warnings;
 use parent qw(Mixin::Event::Dispatch);
