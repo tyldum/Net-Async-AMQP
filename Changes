@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.003     2014-02-27 07:56:25+00:00 Europe/London
 	Bugs fixed:
 	* Connection close sends a real connection close, rather than a channel close request
 
