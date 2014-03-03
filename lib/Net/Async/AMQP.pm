@@ -5,7 +5,7 @@ use warnings;
 use parent qw(Mixin::Event::Dispatch);
 use constant EVENT_DISPATCH_ON_FALLBACK => 0;
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 =head1 NAME
 
@@ -232,13 +232,29 @@ sub connect {
     $args{pass} //= 'guest';
     $self->{user} = $args{user};
 
+	# Remember our event callbacks so we can unsubscribe
+	my $connected;
+	my $close;
+
+	# Clean up once we succeed/fail
+	$f->on_ready(sub {
+		$self->unsubscribe_from_event(close => $close) if $close;
+		$self->unsubscribe_from_event(connected => $connected) if $connected;
+		undef $close;
+		undef $connected;
+		undef $self;
+		undef $f;
+	});
+
     # One-shot event on connection
-    $self->subscribe_to_event(connected => callback {
+    $self->subscribe_to_event(connected => $connected = callback {
         my $ev = shift;
-		unless($f->is_ready) {
-			$f->done($ev->instance);
-		}
-		$ev->unsubscribe;
+		$f->done($ev->instance) unless $f->is_ready;
+    } allowed => [qw($f)]);
+	# Also pick up connection termination
+    $self->subscribe_to_event(close => $close = callback {
+        my $ev = shift;
+		$f->fail('Remote closed connection') unless $f->is_ready;
     } allowed => [qw($f)]);
 
     $loop->connect(
