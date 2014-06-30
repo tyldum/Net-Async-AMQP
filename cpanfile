@@ -1,7 +1,6 @@
 requires 'parent', 0;
 requires 'curry', 0;
-requires 'Future', '>= 0.15';
-requires 'Try::Tiny', 0;
+requires 'Future', '>= 0.28';
 requires 'Mixin::Event::Dispatch', '>= 1.000';
 requires 'Net::AMQP', '>= 0.04';
 requires 'Class::ISA', 0;

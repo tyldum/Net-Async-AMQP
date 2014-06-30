@@ -495,6 +495,30 @@ sub id {
     $self
 }
 
+{
+package Net::Async::AMQP::Channel::Helper;
+
+sub new { bless { channel => $_[1] }, $_[0] }
+sub channel { shift->{channel} }
+sub DESTROY {
+	my $self = shift;
+	$self->channel->release if $self->channel;
+}
+
+our $AUTOLOAD;
+sub AUTOLOAD {
+	my $self = shift;
+	(my $method = $AUTOLOAD) =~ s/^.*:://;
+	warn "Adding new autoload method $method\n";
+	my $code = $self->channel->${\"curry::weak::$method"}->();
+	*{"__PACKAGE__::$method"} = $code;
+	$code->(@_);
+}
+
+sub diagnostics {
+	my ($d, $level) = @_;
+}
+}
 1;
 
 __END__
