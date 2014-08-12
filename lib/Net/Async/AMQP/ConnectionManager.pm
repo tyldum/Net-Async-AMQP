@@ -7,15 +7,16 @@ use parent qw(IO::Async::Notifier);
 
 =head1 NAME
 
-Net::Async::AMQP::ConnectionManager - provides client interface to AMQP using L<IO::Async>
+Net::Async::AMQP::ConnectionManager - handle MQ connections
 
 =head1 SYNOPSIS
 
  use IO::Async::Loop;
  use Net::Async::AMQP;
- my $cm = Net::Async::AMQP::ConnectionManager->new;
  my $loop = IO::Async::Loop->new;
- $loop->add($cm);
+ $loop->add(
+  my $cm = Net::Async::AMQP::ConnectionManager->new
+ );
  $cm->add(
    host  => 'localhost',
    user  => 'guest',
