@@ -297,7 +297,7 @@ sub connect {
 
 sub on_stream {
     my ($self, $args, $stream) = @_;
-    warn "We're in: $stream\n" if DEBUG;
+	$self->debug_printf("Stream received");
     $self->{stream} = $stream;
     $stream->configure(
         on_read => $self->curry::on_read,
@@ -310,7 +310,7 @@ sub on_stream {
 
 sub on_read {
     my ($self, $stream, $buffref, $eof) = @_;
-    warn "EOF" if DEBUG && $eof;
+	$self->debug_printf("At EOF");
 
 	$self->last_frame_time($self->loop->time);
 
@@ -323,7 +323,7 @@ sub on_read {
 sub on_closed {
 	my $self = shift;
 	my $reason = shift // 'unknown';
-    warn "Connection closed (reason: $reason)" if DEBUG;
+	$self->debug_printf("Connection closed [%s]", $reason);
 	$self->stream->close if $self->stream;
 	$self->invoke_event(close => $reason)
 }
@@ -358,7 +358,7 @@ This will invoke the L</heartbeat_failure event> then close the connection.
 
 sub handle_heartbeat_failure {
 	my $self = shift;
-    warn "Heartbeat timeout: no data received from server since " . $self->last_frame_time . ", closing connection\n";
+	$self->debug_printf("Heartbeat timeout: no data received from server since %s, closing connection", $self->last_frame_time);
 	$self->heartbeat_timer->stop if $self->heartbeat_timer;
 	$self->invoke_event(heartbeat_failure => $self->last_frame_time);
 	$self->close;
@@ -502,7 +502,7 @@ sub setup_connection {
         'Connection::OpenOk' => sub {
             my ($self, $frame) = @_;
             my $method_frame = $frame->method_frame;
-            warn "we are open for business" if DEBUG;
+			$self->debug_printf("OpenOk received");
             $self->invoke_event(connected =>);
         }
     );
@@ -549,7 +549,7 @@ sub open_channel {
         id     => $channel,
     );
     $self->{channel_by_id}{$channel} = $c;
-    warn "Record channel $channel as $c\n" if DEBUG;
+	$self->debug_printf("Record channel %d as %s", $channel, $c);
     $self->push_pending(
         'Channel::OpenOk' => sub {
             my ($self, $frame) = @_;
