@@ -115,6 +115,8 @@ sub request_channel {
 	my $self = shift;
 	my %args = @_;
 
+	die "We are shutting down" if $self->{shutdown_future};
+
 	# Assign channel with matching QoS if available
 	my $k = $self->key_for_args(\%args);
 	if(exists $self->{channel_by_key}{$k} && @{$self->{channel_by_key}{$k}}) {
@@ -187,19 +189,79 @@ sub request_channel {
 	);
 }
 
+=head2 apply_qos
+
+Set QoS on the given channel.
+
+Expects the L<Net::Async::AMQP::Channel> object as the first
+parameter, followed by the key/value pairs corresponding to
+the desired QoS settings:
+
+=over 4
+
+=item * prefetch_count - number of messages that can be delivered before ACK
+is required
+
+=back
+
+Returns a L<Future> which will resolve to the original 
+L<Net::Async::AMQP::Channel> instance.
+
+=cut
+
 sub apply_qos {
 	my ($self, $ch, %args) = @_;
-	Future->wrap($ch)
+	(fmap_void {
+		my $k = shift;
+		my $v = $args{$k};
+		my $method = "qos_$k";
+		my $code = $self->can($method) or die "Unknown QoS setting $k (value $v)";
+		$code->($self, $ch, $k => $v);
+	} foreach => [
+		sort keys %args
+	])->transform(
+		done => sub { $ch }
+	)->set_label(
+		'Apply QoS settings'
+	);
 }
 
-sub request_connection {	
+sub qos_prefetch_size {
+	my ($self, $ch, $k, $v) = @_;
+	return $ch->qos(
+		$k => $args{$k}
+	)->set_label("Apply $k QoS");
+}
+
+sub qos_prefetch_count {
+	my ($self, $ch, $k, $v) = @_;
+	return $ch->qos(
+		$k => $args{$k}
+	)->set_label("Apply $k QoS");
+}
+
+sub qos_confirm_mode {
+	my ($self, $ch, $k, $v) = @_;
+	return $ch->confirm_mode(
+		$k => $args{$k}
+	)->set_label("Apply $k QoS");
+}
+
+=head2 request_connection
+
+Attempts to connect to one of the known AMQP servers.
+
+=cut
+
+sub request_connection {
 	my ($self) = @_;
+	die "We are shutting down" if $self->{shutdown_future};
 	if(my $conn = $self->{pending_connection}) {
 		return $conn
 	}
 
 	if(exists $self->{available_connections} && @{$self->{available_connections}}) {
-		warn "Assigning existing connection\n";
+		$self->debug_printf("Assigning existing connection");
 		return Future->wrap(
 			Net::Async::AMQP::ConnectionManager::Connection->new(
 				amqp    => shift @{$self->{available_connections}},
@@ -208,9 +270,14 @@ sub request_connection {
 		)
 	}
 	die "No connection details available" unless $self->{amqp_host};
+
 	$self->{pending_connection} = $self->connect(
 		%{$self->next_host}
-	)->transform(
+	)->on_fail(sub {
+		delete $self->{pending_connection};
+	})->on_cancel(sub {
+		delete $self->{pending_connection};
+	})->transform(
 		done => sub {
 			my $mq = shift;
 			delete $self->{pending_connection};
@@ -219,20 +286,31 @@ sub request_connection {
 				manager => $self,
 			)
 		}
-	)->on_fail(sub {
-		delete $self->{pending_connection};
-	})->on_cancel(sub {
-		delete $self->{pending_connection};
-	})
+	)->set_label(
+		'Connect to MQ server'
+	)
 }
+
+=head2 next_host
+
+Returns the next AMQP host.
+
+=cut
 
 sub next_host {
 	my $self = shift;
 	$self->{amqp_host}[rand @{$self->{amqp_host}}]
 }
 
+=head2 connect
+
+Attempts a connection to an AMQP host.
+
+=cut
+
 sub connect {
 	my ($self, %args) = @_;
+	die "We are shutting down" if $self->{shutdown_future};
 	my $amqp = Net::Async::AMQP->new(
 		loop => $self->loop,
 	);
@@ -241,6 +319,13 @@ sub connect {
 		%args
 	)
 }
+
+=head2 mark_connection_full
+
+Indicate that this connection has already allocated all available
+channels.
+
+=cut
 
 sub mark_connection_full {
 	my ($self, $mq) = @_;
@@ -266,7 +351,7 @@ Called when one of our channels has been closed.
 
 sub on_channel_close {
 	my ($self, $ch, $ev, %args) = @_;
-	warn "channel closure: @_";
+	$self->debug_printf("channel closure: %s", join ' ', @_);
 	my $amqp = $ch->amqp or die "This channel (" . $ch->id . ") has no AMQP connection";
 	push @{$self->{closed_channel}}, [ $amqp, $ch->id ];
 }
@@ -285,17 +370,15 @@ sub release_channel {
 	$self
 }
 
-sub add {
-	my ($self, %args) = @_;
-	push @{$self->{amqp_host}}, \%args;
-}
+=head2 add
 
-=head2 mq
+Adds connection details for an AMQP server to the pool.
 
 =cut
 
-sub mq {
-	my $self = shift;
+sub add {
+	my ($self, %args) = @_;
+	push @{$self->{amqp_host}}, \%args;
 }
 
 =head2 exch
@@ -326,41 +409,27 @@ sub queue {
 
 sub release_connection {
 	my ($self, $mq) = @_;
-	warn "Releasing connection - $mq\n";
+	$self->debug_printf("Releasing connection %s", $mq);
 	push @{$self->{available_connections}}, $mq;
 }
 
 sub shutdown {
 	my $self = shift;
-	warn "Shutdown started\n";
-	Future->wait_all(
+	$self->debug_printf("Shutdown started");
+	die "Shutdown already in progress?" if $self->{shutdown_future};
+	my $start = [Time::HiRes::gettimeofday];
+	$self->{shutdown_future} = Future->wait_all(
 		map $_->close, @{$self->{available_connections}}
-	)->on_done(sub {
-		warn "All connections closed\n";
-		Future->wrap
-	})
+	)->on_ready(sub {
+		delete $self->{shutdown_future};
+	})->on_done(sub {
+		$self->debug_printf("All connections closed - elapsed %.3fs", Time::HiRes::tv_interval($start, [Time::HiRes::gettimeofday]));
+	});
 }
 
 1;
 
 __END__
-
-=head1 EVENTS
-
-The following events may be raised by this class - use
-L<Mixin::Event::Dispatch/subscribe_to_event> to watch for them:
-
- $mq->subscribe_to_event(
-   heartbeat_failure => sub {
-     my ($ev, $last) = @_;
-	 print "Heartbeat failure detected\n";
-   }
- );
-
-=head2 connected event
-
-Called after the connection has been opened.
-
 
 =head1 AUTHOR
 
