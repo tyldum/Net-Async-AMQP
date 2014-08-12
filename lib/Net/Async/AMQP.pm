@@ -447,7 +447,7 @@ sub setup_tuning {
             # Lowest value for frame max wins - our predef constant, or whatever the server suggests
             $self->frame_max(my $frame_max = min $method_frame->frame_max, MAX_FRAME_SIZE);
 			$self->channel_max(my $channel_max = $method_frame->channel_max || $self->channel_max || MAX_CHANNELS);
-			warn "Remote says " . $method_frame->channel_max . " channels, will use $channel_max\n";
+			$self->debug_printf("Remote says %d channels, will use %d", $method_frame->channel_max, $channel_max);
 			$self->{channel} = 0;
             $self->send_frame(
                 Net::AMQP::Protocol::Connection::TuneOk->new(
