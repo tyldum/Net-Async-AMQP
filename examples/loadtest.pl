@@ -23,30 +23,36 @@ GetOptions(
 my $loop = IO::Async::Loop->new;
 
 say "start";
-my $total = 0; my $active = 0;
+my %stats;
 $loop->add(IO::Async::Timer::Periodic->new(
 	interval => 2,
 	reschedule => 'skip',
 	on_tick => sub {
-		printf "%d total, %d active\n", $total, $active;
+		say join ', ', map { sprintf "%d %s", $stats{$_}, $_ } sort keys %stats;
 	}
 )->start);
 my $true = (Net::AMQP->VERSION >= 0.06) ? Net::AMQP::Value->true : 1;
 my %mq;
 (fmap0 {
-	++$active;
+	++$stats{active};
     my $mq = Net::Async::AMQP->new(
         loop               => $loop,
         heartbeat_interval => 0,
     );
-    $mq{$mq} = $mq->connect(
-		%args,
-        client_properties => {
-            capabilities => {
-                'consumer_cancel_notify' => $true,
-                'connection.blocked'     => $true,
-            },
-        },
-	)->on_ready(sub { --$active; ++$total })
-} concurrent => 64, generate => sub { 1 })->get;
+	my $k = "$mq";
+	$mq{$k} = Future->wait_any(
+		$mq->connect(
+			%args,
+			client_properties => {
+				capabilities => {
+					'consumer_cancel_notify' => $true,
+					'connection.blocked'     => $true,
+				},
+			},
+		)->on_fail(sub { ++$stats{failed} }),
+		$loop->timeout_future(after => 15)
+		 ->on_fail(sub { ++$stats{timeout} })
+	)->on_ready(sub { --$stats{active}; ++$stats{total} })
+	 ->on_fail(sub { delete $mq{$k} })
+} concurrent => 128, generate => sub { 1 })->get;
 
