@@ -27,20 +27,27 @@ Net::Async::AMQP::ConnectionManager - handle MQ connections
    my $ch = shift;
    Future->needs_all(
      $ch->declare_exchange(
+       'exchange_name'
      ),
      $ch->declare_queue(
+       'queue_name'
      ),
    )->transform(done => sub { $ch })
  })->then(sub {
    my $ch = shift;
    $ch->bind_queue(
+     'exchange_name',
+	 'queue_name',
+	 '*'
    )
  })->get;
 
 =cut
 
 use Future;
-use Future::Utils qw(call try_repeat);
+use Future::Utils qw(call try_repeat fmap_void);
+
+use Time::HiRes ();
 
 use Net::Async::AMQP;
 use Net::Async::AMQP::ConnectionManager::Channel;
