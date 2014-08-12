@@ -173,7 +173,9 @@ sub request_channel {
 			);
 			$self->apply_qos($ch => %args)
 		}
-	})->transform(
+	})->set_label(
+		'Channel QoS'
+	)->transform(
 		done => sub {
 			my $ch = shift;
 			$self->{channel_args}{$ch->id} = \%args;
