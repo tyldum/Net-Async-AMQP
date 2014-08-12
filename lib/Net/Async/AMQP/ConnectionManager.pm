@@ -55,7 +55,11 @@ use Net::Async::AMQP::ConnectionManager::Connection;
 
 =head1 DESCRIPTION
 
-Each connection has N total available channels, recorded in a hash.
+=head2 Channel management
+
+Each connection has N total available channels, recorded in a hash. The total number
+of channels per connection is negotiated via the intial AMQP Tune/TuneOk sequence on
+connection.
 
 We also maintain lists:
 
@@ -87,7 +91,9 @@ the callbacks have completed for a given request.
 
 The channel object does not expose any methods that allow
 altering QoS or other channel state settings. These must be
-requested on channel assignment.
+requested on channel assignment. This does not necessarily
+mean that any QoS change will require allocation of a new
+channel.
 
 Bypassing the proxy object to change QoS flags is not recommended.
 
