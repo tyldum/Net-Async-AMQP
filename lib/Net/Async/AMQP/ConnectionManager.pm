@@ -273,14 +273,11 @@ sub request_connection {
 
 	$self->{pending_connection} = $self->connect(
 		%{$self->next_host}
-	)->on_fail(sub {
-		delete $self->{pending_connection};
-	})->on_cancel(sub {
+	)->on_ready(sub {
 		delete $self->{pending_connection};
 	})->transform(
 		done => sub {
 			my $mq = shift;
-			delete $self->{pending_connection};
 			Net::Async::AMQP::ConnectionManager::Connection->new(
 				amqp    => $mq,
 				manager => $self,
