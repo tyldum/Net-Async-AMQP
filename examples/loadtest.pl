@@ -21,6 +21,10 @@ GetOptions(
 ) or die("Error in command line arguments\n");
 
 my $loop = IO::Async::Loop->new;
+$loop->resolver->configure(
+	min_workers => 2,
+	max_workers => 2,
+);
 
 say "start";
 my %stats;
