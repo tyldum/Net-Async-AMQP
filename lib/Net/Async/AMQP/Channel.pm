@@ -35,6 +35,12 @@ use Scalar::Util qw(weaken);
 use Net::Async::AMQP;
 use constant DEBUG => Net::Async::AMQP->DEBUG;
 
+use overload
+    '""' => sub { shift->as_string },
+    '0+' => sub { 0 + shift->id },
+    bool => sub { 1 },
+    fallback => 1;
+
 =head1 METHODS
 
 =cut
@@ -493,6 +499,11 @@ sub id {
     return $self->{id} unless @_;
     $self->{id} = shift;
     $self
+}
+
+sub as_string {
+	my $self = shift;
+	sprintf "Channel[%d]", $self->id;
 }
 
 {
