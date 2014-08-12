@@ -15,8 +15,8 @@ my %args;
 GetOptions(
 	"host|h=s" => \$args{host},
 	"user|u=s" => \$args{user},
-	"pass|p=s" => \$args{pass},
-	"port|P=i" => \$args{port},
+	"pass=s" => \$args{pass},
+	"port=i" => \$args{port},
 	"vhost|v=s" => \$args{vhost},
 ) or die("Error in command line arguments\n");
 
