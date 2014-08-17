@@ -29,6 +29,10 @@ Revision history for {{$dist->name}}
 	* If we establish TCP connection but fail to negotiate auth with server,
 	previously this would leave the connection future unresolved. It will now
 	fail with a message indicating that the remote closed the connection.
+	* Net::AMQP was generating an invalid initial connection header
+	(AMQP\x01\x01$major$minor rather than AMQP\x00$major$minor$rev as the
+	AMQP 0.9.1 spec seems to require), we now generate our own header.
+	RabbitMQ seems happy with either.
 
 0.003     2014-02-27 07:56:25+00:00 Europe/London
 	Bugs fixed:
