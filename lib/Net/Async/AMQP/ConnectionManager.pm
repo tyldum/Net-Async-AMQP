@@ -308,8 +308,8 @@ Attempts a connection to an AMQP host.
 sub connect {
 	my ($self, %args) = @_;
 	die "We are shutting down" if $self->{shutdown_future};
-	my $amqp = Net::Async::AMQP->new(
-		loop => $self->loop,
+	$self->add_child(
+		my $amqp = Net::Async::AMQP->new
 	);
 	$args{port} ||= 5672;
 	$amqp->connect(
