@@ -45,11 +45,15 @@ use overload
 
 =cut
 
-sub new {
-    my $class = shift;
-    my $self = bless { @_ }, $class;
-    Scalar::Util::weaken($_) for @{$self}{qw/amqp/};
-    $self
+sub configure {
+	my ($self, %args) = @_;
+	for(grep exists $args{$_}, qw(amqp)) {
+		Scalar::Util::weaken($self->{$_} = delete $args{$_})
+	}
+	for(grep exists $args{$_}, qw(future id)) {
+		$self->{$_} = delete $args{$_};
+	}
+    $self->SUPER::configure(%args);
 }
 
 =head2 confirm_mode
@@ -148,12 +152,12 @@ sub queue_declare {
     $self->future->then(sub {
         warn "queue decl\n" if DEBUG;
         my $f = $self->loop->new_future;
-        my $q = Net::Async::AMQP::Queue->new(
+        $self->add_child(my $q = Net::Async::AMQP::Queue->new(
             amqp   => $self->amqp,
             future => $f,
-        );
+        ));
         warn "Attempting to declare our queue" if DEBUG;
-        $q->channel($self);
+        $q->configure(channel => $self);
         my $frame = Net::AMQP::Frame::Method->new(
             channel => $self->id,
             method_frame => Net::AMQP::Protocol::Queue::Declare->new(

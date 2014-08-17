@@ -3,7 +3,7 @@ package Net::Async::AMQP::Queue;
 use strict;
 use warnings;
 
-use parent qw(Mixin::Event::Dispatch);
+use parent qw(IO::Async::Notifier);
 
 =head1 NAME
 
@@ -40,7 +40,16 @@ use constant DEBUG => Net::Async::AMQP->DEBUG;
 
 =cut
 
-sub loop { shift->amqp->loop }
+sub configure {
+	my ($self, %args) = @_;
+	for(grep exists $args{$_}, qw(amqp channel)) {
+		Scalar::Util::weaken($self->{$_} = delete $args{$_})
+	}
+	for(grep exists $args{$_}, qw(future)) {
+		$self->{$_} = delete $args{$_};
+	}
+    $self->SUPER::configure(%args);
+}
 
 sub amqp { shift->{amqp} }
 
@@ -53,12 +62,7 @@ sub queue_name {
     $self
 }
 
-sub channel {
-    my $self = shift;
-    return $self->{channel} unless @_;
-    Scalar::Util::weaken($self->{channel} = shift);
-    $self
-}
+sub channel { shift->{channel} }
 
 =head1 METHODS
 
