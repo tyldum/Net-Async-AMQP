@@ -424,8 +424,13 @@ sub post_connect {
         }
     );
 
-    # Send the initial header bytes
-    $self->write(Net::AMQP::Protocol->header);
+    # Send the initial header bytes. It'd be nice
+	# if we could use L<Net::AMQP::Protocol/header>
+	# for this, but it seems to be sending 1 for
+	# the protocol ID, and the revision number is
+	# before the major/minor version.
+    # $self->write(Net::AMQP::Protocol->header);
+    $self->write($self->header_bytes);
     $self
 }
 
@@ -1025,6 +1030,8 @@ sub send_frame {
 	$self->reset_heartbeat if $self->heartbeat_timer;
     $self;
 }
+
+sub header_bytes { "AMQP\x00\x00\x09\x01" }
 
 =head2 reset_heartbeat
 
