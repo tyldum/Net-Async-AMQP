@@ -1,8 +1,8 @@
 requires 'parent', 0;
 requires 'curry', 0;
 requires 'Future', '>= 0.28';
-requires 'Mixin::Event::Dispatch', '>= 1.000';
-requires 'Net::AMQP', '>= 0.04';
+requires 'Mixin::Event::Dispatch', '>= 1.006';
+requires 'Net::AMQP', '>= 0.06';
 requires 'Class::ISA', 0;
 requires 'List::UtilsBy', 0;
 requires 'File::ShareDir', 0;

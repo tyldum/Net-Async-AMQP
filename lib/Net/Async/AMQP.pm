@@ -217,6 +217,14 @@ sub new {
     $self
 }
 
+=head2 bus
+
+Event bus. Used for sharing global events.
+
+=cut
+
+sub bus { $_[0]->{bus} ||= Mixin::Event::Dispatch::Bus->new }
+
 =head2 connect
 
 Takes the following parameters:
