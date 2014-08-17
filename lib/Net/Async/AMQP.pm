@@ -3,8 +3,7 @@ package Net::Async::AMQP;
 use strict;
 use warnings;
 
-use parent qw(Mixin::Event::Dispatch);
-use constant EVENT_DISPATCH_ON_FALLBACK => 0;
+use parent qw(IO::Async::Notifier);
 
 our $VERSION = '0.004';
 
@@ -43,6 +42,7 @@ use List::Util qw(min);
 use List::UtilsBy qw(extract_by);
 use File::ShareDir ();
 use Scalar::Util qw(weaken);
+use Mixin::Event::Dispatch::Bus;
 
 =head1 CONSTANTS
 
@@ -188,13 +188,11 @@ our %CONNECTION_DEFAULTS = (
 
 =cut
 
-=head2 new
+=head2 configure
 
-Constructor. Takes the following parameters:
+Set up variables. Takes the following optional named parameters:
 
 =over 4
-
-=item * loop - the L<IO::Async::Loop> which we should add ourselves to
 
 =item * heartbeat_interval - (optional) interval between heartbeat messages,
 default is set by the L</HEARTBEAT_INTERVAL> constant
@@ -205,16 +203,12 @@ Returns the new instance.
 
 =cut
 
-sub new {
-    my $class = shift;
-    my $self = bless {
-		# Apply default heartbeat value, can be overriden
-        heartbeat_interval => HEARTBEAT_INTERVAL,
-        @_
-    }, $class;
-	die "no loop provided" unless $self->{loop};
-	weaken($self->{loop});
-    $self
+sub configure {
+    my ($self, %args) = @_;
+	for (qw(heartbeat_interval)) {
+		$self->{$_} = delete $args{$_} if exists $args{$_}
+	}
+    $self->SUPER::configure(%args)
 }
 
 =head2 bus
@@ -268,8 +262,8 @@ sub connect {
 
 	# Clean up once we succeed/fail
 	$f->on_ready(sub {
-		$self->unsubscribe_from_event(close => $close) if $close;
-		$self->unsubscribe_from_event(connected => $connected) if $connected;
+		$self->bus->unsubscribe_from_event(close => $close) if $close;
+		$self->bus->unsubscribe_from_event(connected => $connected) if $connected;
 		undef $close;
 		undef $connected;
 		undef $self;
@@ -277,12 +271,12 @@ sub connect {
 	});
 
     # One-shot event on connection
-    $self->subscribe_to_event(connected => $connected = sub {
+    $self->bus->subscribe_to_event(connected => $connected = sub {
         my $ev = shift;
-		$f->done($ev->instance) unless $f->is_ready;
+		$f->done($self) unless $f->is_ready;
     });
 	# Also pick up connection termination
-    $self->subscribe_to_event(close => $close = sub {
+    $self->bus->subscribe_to_event(close => $close = sub {
         my $ev = shift;
 		$f->fail('Remote closed connection') unless $f->is_ready;
     });
@@ -368,10 +362,10 @@ sub on_closed {
 	my $reason = shift // 'unknown';
 	$self->debug_printf("Connection closed [%s]", $reason);
 	$self->stream->close if $self->stream;
-	$self->invoke_event(close => $reason)
+	$self->bus->invoke_event(close => $reason)
 }
 
-sub heartbeat_interval { shift->{heartbeat_interval} }
+sub heartbeat_interval { shift->{heartbeat_interval} //= HEARTBEAT_INTERVAL }
 
 sub apply_heartbeat_timer {
     my $self = shift;
@@ -403,7 +397,7 @@ sub handle_heartbeat_failure {
 	my $self = shift;
 	$self->debug_printf("Heartbeat timeout: no data received from server since %s, closing connection", $self->last_frame_time);
 	$self->heartbeat_timer->stop if $self->heartbeat_timer;
-	$self->invoke_event(heartbeat_failure => $self->last_frame_time);
+	$self->bus->invoke_event(heartbeat_failure => $self->last_frame_time);
 	$self->close;
 }
 
@@ -551,7 +545,7 @@ sub setup_connection {
             my ($self, $frame) = @_;
             my $method_frame = $frame->method_frame;
 			$self->debug_printf("OpenOk received");
-            $self->invoke_event(connected =>);
+            $self->bus->invoke_event(connected =>);
         }
     );
     $self
@@ -591,11 +585,11 @@ sub open_channel {
         method_frame => Net::AMQP::Protocol::Channel::Open->new,
     );
     $frame->channel($channel);
-    my $c = Net::Async::AMQP::Channel->new(
+    $self->add_child(my $c = Net::Async::AMQP::Channel->new(
         amqp   => $self,
         future => $f,
         id     => $channel,
-    );
+    ));
     $self->{channel_by_id}{$channel} = $c;
 	$self->debug_printf("Record channel %d as %s", $channel, $c);
     $self->push_pending(
@@ -693,7 +687,7 @@ sub next_pending {
 		# option is set (RabbitMQ). We don't expect many so report
 		# them when in debug mode.
 		warn "We had no pending handlers for $type, raising as event" if DEBUG;
-		$self->invoke_event(
+		$self->bus->invoke_event(
 			unexpected_frame => $type, $frame
 		);
 	}
@@ -701,14 +695,6 @@ sub next_pending {
 }
 
 =head1 METHODS - Accessors
-
-=head2 loop
-
-L<IO::Async::Loop> container.
-
-=cut
-
-sub loop { shift->{loop} }
 
 =head2 host
 
@@ -936,7 +922,7 @@ sub process_frame {
         }
         unless($frame->body_size) {
             $self->{incoming_message}{$frame->channel}{payload} = '';
-            $self->{channel_map}{$frame->channel}->invoke_event(
+            $self->{channel_map}{$frame->channel}->bus->invoke_event(
                 message => @{$self->{incoming_message}{$frame->channel}}{qw(type payload ctag dtag rkey)},
             );
             delete $self->{incoming_message}{$frame->channel};
@@ -948,7 +934,7 @@ sub process_frame {
     # TODO should handle multiple chunks?
     if($frame->isa('Net::AMQP::Frame::Body')) {
         $self->{incoming_message}{$frame->channel}{payload} = $frame->payload;
-        $self->{channel_map}{$frame->channel}->invoke_event(
+        $self->{channel_map}{$frame->channel}->bus->invoke_event(
             message => @{$self->{incoming_message}{$frame->channel}}{qw(type payload ctag dtag rkey)},
         );
         delete $self->{incoming_message}{$frame->channel};
@@ -1101,11 +1087,16 @@ sub reset_heartbeat {
     $timer->reset;
 }
 
+sub _add_to_loop {
+	my ($self, $loop) = @_;
+	$self->debug_printf("Added %s to loop", $self);
+}
+
 =head1 future
 
 Returns a new L<IO::Async::Future> instance.
 
-Supports optional 
+Supports optional named parameters for setting label etc.
 
 =cut
 
@@ -1118,16 +1109,6 @@ sub future {
 	$f
 }
 
-sub notifier_name { undef }
-sub parent { undef }
-
-# IO::Async::Notifier
-sub debug_printf {
-	my $self = shift;
-	return unless DEBUG;
-	IO::Async::Notifier::debug_printf($self, @_);
-}
-
 1;
 
 __END__
@@ -1137,7 +1118,7 @@ __END__
 The following events may be raised by this class - use
 L<Mixin::Event::Dispatch/subscribe_to_event> to watch for them:
 
- $mq->subscribe_to_event(
+ $mq->bus->subscribe_to_event(
    heartbeat_failure => sub {
      my ($ev, $last) = @_;
 	 print "Heartbeat failure detected\n";
@@ -1160,7 +1141,7 @@ Raised if we receive no data from the remote for more than 3 heartbeat intervals
 
 If we receive an unsolicited frame from the server this event will be raised:
 
- $mq->subscribe_to_event(
+ $mq->bus->subscribe_to_event(
   unexpected_frame => sub {
    my ($ev, $type, $frame) = @_;
    warn "Frame type $type received: $frame\n";

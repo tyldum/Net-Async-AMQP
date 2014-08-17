@@ -2,7 +2,8 @@ package Net::Async::AMQP::Channel;
 
 use strict;
 use warnings;
-use parent qw(Mixin::Event::Dispatch);
+
+use parent qw(IO::Async::Notifier);
 
 =head1 NAME
 
@@ -367,7 +368,7 @@ Called when the channel has been closed.
 sub on_close {
     my $self = shift;
     my $frame = shift;
-    $self->invoke_event(
+    $self->bus->invoke_event(
         'close',
         code => $frame->reply_code,
         message => $frame->reply_text,
@@ -430,13 +431,13 @@ The parent L<Net::Async::AMQP> instance.
 
 sub amqp { shift->{amqp} }
 
-=head2 loop
+=head2 bus
 
-Our containing L<IO::Async::Loop> instance.
+Event bus. Used for sharing channel-specific events.
 
 =cut
 
-sub loop { shift->amqp->loop }
+sub bus { $_[0]->{bus} ||= Mixin::Event::Dispatch::Bus->new }
 
 =head2 write
 
