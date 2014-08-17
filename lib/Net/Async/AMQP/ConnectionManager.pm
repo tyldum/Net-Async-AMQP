@@ -229,21 +229,21 @@ sub apply_qos {
 sub qos_prefetch_size {
 	my ($self, $ch, $k, $v) = @_;
 	return $ch->qos(
-		$k => $args{$k}
+		$k => $v
 	)->set_label("Apply $k QoS");
 }
 
 sub qos_prefetch_count {
 	my ($self, $ch, $k, $v) = @_;
 	return $ch->qos(
-		$k => $args{$k}
+		$k => $v
 	)->set_label("Apply $k QoS");
 }
 
 sub qos_confirm_mode {
 	my ($self, $ch, $k, $v) = @_;
 	return $ch->confirm_mode(
-		$k => $args{$k}
+		$k => $v
 	)->set_label("Apply $k QoS");
 }
 
