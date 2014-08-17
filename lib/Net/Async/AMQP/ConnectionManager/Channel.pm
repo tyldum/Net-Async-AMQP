@@ -75,7 +75,7 @@ sub DESTROY {
 	my $self = shift;
 	my $conman = delete $self->{manager};
 	my $ch = delete $self->{channel};
-	$conman->debug_sprintf("Releasing channel %d", $self->channel->id);
+	$conman->debug_printf("Releasing channel %d", $ch->id);
 	return $conman->release_channel($ch) unless $self->{cleanup};
 	my $f;
 	$f = (
