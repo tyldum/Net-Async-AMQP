@@ -1,12 +1,14 @@
 requires 'parent', 0;
 requires 'curry', 0;
-requires 'Future', '>= 0.28';
+requires 'Future', '>= 0.29';
 requires 'Mixin::Event::Dispatch', '>= 1.006';
+requires 'IO::Async', '>= 0.63';
 requires 'Net::AMQP', '>= 0.06';
 requires 'Class::ISA', 0;
 requires 'List::UtilsBy', 0;
 requires 'File::ShareDir', 0;
-requires 'IO::Async', '>= 0.60';
+requires 'IO::Socket::IP', 0;
+requires 'Time::HiRes', 0;
 
 on 'test' => sub {
 	requires 'Test::More', '>= 0.98';
@@ -14,4 +16,3 @@ on 'test' => sub {
 	requires 'Test::Refcount', '>= 0.07';
 	requires 'Test::MemoryGrowth', 0;
 };
-
