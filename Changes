@@ -1,6 +1,27 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	API CHANGES:
+	* The Net::Async::AMQP class is now an IO::Async::Notifier, to bring it in line with
+	other IO::Aync code. One side effect of this change is that events are now raised through
+	a message bus rather than directly on the Net::Async::AMQP instance itself.
+
+	Existing code will need to change this:
+
+	 my $amqp = Net::Async::AMQP->new(loop => $loop);
+
+	to this:
+
+	 $loop->add->(my $amqp = Net::Async::AMQP->new);
+
+	and this:
+
+	 $amqp->subscribe_to_event(...);
+
+	to this:
+
+	 $amqp->bus->subscribe_to_event(...);
+
 	New features:
 	* Connection manager for automatically connecting and assigning channels
 
