@@ -308,9 +308,44 @@ sub on_stream {
     return;
 }
 
+sub dump_frame {
+	my ($self, $pkt) = @_;
+	my ($type) = unpack 'C1', substr $pkt, 0, 1, '';
+	printf "Type: %02x (%s)\n", $type, {
+		1 => 'Method',
+	}->{$type};
+
+	my ($chan) = unpack 'n1', substr $pkt, 0, 2, '';
+	printf "Channel: %d\n", $chan;
+
+	my ($len) = unpack 'N1', substr $pkt, 0, 4, '';
+	printf "Length: %d bytes\n", $len;
+
+	if($type == 1) {
+		my ($class, $method) = unpack 'n1n1', substr $pkt, 0, 4, '';
+		printf "Class: %s\n", $class;
+		printf "Method: %s\n", $method;
+	}
+}
+
 sub on_read {
     my ($self, $stream, $buffref, $eof) = @_;
-	$self->debug_printf("At EOF");
+	# Frame dumping support - not that useful yet, so it's disabled
+	if(0) {
+		my $mem = $$buffref;
+		$self->dump_frame($mem);
+		my $idx = 0;
+		while(length $mem) {
+			my $hex = join ' ', unpack 'H2'x16, my $bytes = substr $mem, 0, 16, '';
+			substr $hex, 8 * 3, 0, '  ';
+			my $asc = join '', map /([[:print:]])/ ? $1 : '.', split //, $bytes;
+			substr $asc, 8, 0, ' ';
+			printf "%8d:  %-52.52s %s\n", $idx, $hex, $asc;
+			$idx += length($asc);
+		}
+		print "\n";
+		$self->debug_printf("At EOF") if $eof;
+	}
 
 	$self->last_frame_time($self->loop->time);
 
