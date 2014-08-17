@@ -6,7 +6,6 @@ requires 'Net::AMQP', '>= 0.06';
 requires 'Class::ISA', 0;
 requires 'List::UtilsBy', 0;
 requires 'File::ShareDir', 0;
-requires 'Closure::Explicit', 0;
 requires 'IO::Async', '>= 0.60';
 
 on 'test' => sub {
