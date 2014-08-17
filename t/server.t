@@ -7,6 +7,8 @@ use IO::Async::Loop;
 use Net::Async::AMQP;
 use Net::Async::AMQP::Server;
 
+plan skip_all => 'unfinished implementation';
+
 my $loop = IO::Async::Loop->new;
 my $srv = Net::Async::AMQP::Server->new;
 $loop->add($srv);
@@ -17,10 +19,8 @@ is($host, '0.0.0.0', 'host is 0.0.0.0');
 $host = 'localhost';
 ok($port, 'non-zero port');
 
-my $cli = Net::Async::AMQP->new(
-	loop => $loop
-);
-$cli->subscribe_to_event(
+$loop->add(my $cli = Net::Async::AMQP->new);
+$cli->bus->subscribe_to_event(
 	close => sub { fail("close - @_") },
 	unexpected_frame => sub { fail("unexpected - @_") },
 );

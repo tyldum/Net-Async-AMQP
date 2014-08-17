@@ -3,7 +3,9 @@ package Net::Async::AMQP::Server::Protocol;
 use strict;
 use warnings;
 
-use parent qw(Net::Async::AMQP);
+sub new { my ($class) = shift; bless { @_ }, $class }
+
+# use parent qw(Net::Async::AMQP);
 
 sub write { my $self = shift; $self->{write}->(@_) }
 
