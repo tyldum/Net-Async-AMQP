@@ -680,7 +680,12 @@ sub next_pending {
     if(my $next = shift @{$self->{pending}{$type} || []}) {
 		# We have a registered handler for this frame type. This usually
 		# means that we've sent a message and are awaiting a response.
-		$next->($self, $frame, @_);
+		if(ref($next) eq 'ARRAY') {
+			my ($f, @args) = @$next;
+			$f->done(@args) unless $f->is_ready;
+		} else {
+			$next->($self, $frame, @_);
+		}
 	} else {
 		# It's quite possible we'll see unsolicited frames back from
 		# the server: these will typically be errors, connection close,
