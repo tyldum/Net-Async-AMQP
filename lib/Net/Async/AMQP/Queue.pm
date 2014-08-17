@@ -13,7 +13,8 @@ Net::Async::AMQP - provides client interface to AMQP using L<IO::Async>
 
  use IO::Async::Loop;
  use Net::Async::AMQP;
- my $amqp = Net::Async::AMQP->new(loop => my $loop = IO::Async::Loop->new);
+ my $loop = IO::Async::Loop->new;
+ $loop->add(my $amqp = Net::Async::AMQP->new);
  $amqp->connect(
    host => 'localhost',
    username => 'guest',
