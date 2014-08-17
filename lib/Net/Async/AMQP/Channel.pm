@@ -148,7 +148,7 @@ sub queue_declare {
         warn "queue decl\n" if DEBUG;
         my $f = $self->loop->new_future;
         my $q = Net::Async::AMQP::Queue->new(
-            amqp => $self->amqp,
+            amqp   => $self->amqp,
             future => $f,
         );
         warn "Attempting to declare our queue" if DEBUG;
