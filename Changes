@@ -24,6 +24,8 @@ Revision history for {{$dist->name}}
 
 	New features:
 	* Connection manager for automatically connecting and assigning channels
+	* Some loadtesting scripts, for performance+stability testing on the server
+	implementation (not available yet, should be in the next release)
 
 	Bugs fixed:
 	* If we establish TCP connection but fail to negotiate auth with server,
