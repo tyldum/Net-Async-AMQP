@@ -180,7 +180,7 @@ sub queue_declare {
         );
         $self->amqp->push_pending(
             'Queue::DeclareOk' => sub {
-                my ($frame) = @_;
+                my ($amqp, $frame) = @_;
                 my $method_frame = $frame->method_frame;
                 $q->queue_name($method_frame->queue);
                 $f->done($q) unless $f->is_ready;
