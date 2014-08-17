@@ -170,7 +170,7 @@ sub request_channel {
 	return $f->then(sub {
 		my $ch = shift;
 		call {
-			$ch->subscribe_to_event(
+			$ch->bus->subscribe_to_event(
 				close => $self->curry::weak::on_channel_close($ch),
 			);
 			$self->apply_qos($ch => %args)
