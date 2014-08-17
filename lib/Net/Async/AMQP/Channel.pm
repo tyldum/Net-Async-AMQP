@@ -77,10 +77,7 @@ sub confirm_mode {
         )
     );
     $self->amqp->push_pending(
-        'Confirm::SelectOk' => sub {
-            $f->done($self) unless $f->is_ready;
-            undef $f;
-        }
+        'Confirm::SelectOk' => [ $f, $self ]
     );
     $self->amqp->send_frame($frame);
     return $f;
@@ -124,12 +121,7 @@ sub exchange_declare {
         )
     );
     $self->amqp->push_pending(
-        'Exchange::DeclareOk' => sub {
-            my ($amqp, $frame) = @_;
-            my $method_frame = $frame->method_frame;
-            $f->done($self) unless $f->is_ready;
-            weaken $f;
-        }
+        'Exchange::DeclareOk' => [ $f, $self ]
     );
     $self->amqp->send_frame($frame);
     return $f;
@@ -184,8 +176,6 @@ sub queue_declare {
                 my $method_frame = $frame->method_frame;
                 $q->queue_name($method_frame->queue);
                 $f->done($q) unless $f->is_ready;
-				weaken $q;
-				weaken $f;
             }
         );
         $self->send_frame($frame);
@@ -309,13 +299,7 @@ sub qos {
         my $f = $self->loop->new_future;
         my $channel = $self->id;
         $self->amqp->push_pending(
-            'Basic::QosOk' => sub {
-                my ($self, $frame) = @_;
-                my $method_frame = $frame->method_frame;
-				warn "QOS Ack" if DEBUG;
-                $f->done unless $f->is_ready;
-                weaken $f;
-            }
+            'Basic::QosOk' => [ $f, $self ],
         );
 
         my $frame = Net::AMQP::Frame::Method->new(
@@ -428,10 +412,7 @@ sub close {
         )
     );
     $self->amqp->push_pending(
-        'Channel::CloseOk' => sub {
-            $f->done($self) unless $f->is_ready;
-            weaken $f;
-        }
+        'Channel::CloseOk' => [ $f, $self ],
     );
     $self->amqp->send_frame($frame);
     return $f;

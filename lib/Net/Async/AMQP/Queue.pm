@@ -101,8 +101,7 @@ sub listen {
         $self->push_pending(
             'Basic::ConsumeOk' => (sub {
                 my ($amqp, $frame) = @_;
-                $f->done($self => $frame->method_frame->consumer_tag) unless $f->is_cancelled;
-				weaken $f;
+                $f->done($self => $frame->method_frame->consumer_tag) unless $f->is_ready;
             })
         );
         $self->send_frame($frame, channel => $self->channel->id);
@@ -162,10 +161,7 @@ sub bind_exchange {
             )
         );
         $self->push_pending(
-            'Queue::BindOk' => sub {
-                $f->done($self) unless $f->is_ready;
-				weaken $f;
-            }
+            'Queue::BindOk' => [ $f, $self ],
         );
         $self->send_frame($frame);
         $f
@@ -195,10 +191,7 @@ sub delete {
             )
         );
         $self->push_pending(
-            'Queue::DeleteOk' => sub {
-                $f->done($self) unless $f->is_ready;
-				weaken $f;
-            }
+            'Queue::DeleteOk' => [ $f, $self ],
         );
         $self->send_frame($frame);
         $f
