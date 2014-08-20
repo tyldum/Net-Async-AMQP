@@ -619,7 +619,31 @@ Returns a L<Future> which will resolve with C<$self> when the connection is clos
 sub close {
     my $self = shift;
     my %args = @_;
+
     my $f = $self->loop->new_future;
+
+	# We might end up with a connection shutdown rather
+	# than a clean Connection::Close response, so
+	# we need to handle both possibilities
+	$self->bus->subscribe_to_event(
+		my @handler = (
+			close => sub {
+				my ($ev, $reason) = @_;
+				$f->done($reason) unless $f->is_ready;
+				$ev->unsubscribe;
+				weaken $f;
+			}
+		)
+	);
+
+	# ... and make sure we clean up after ourselves
+	$f->on_ready(sub {
+		$self->bus->unsubscribe_from_event(
+			@handler
+		);
+		weaken $f;
+	});
+
     my $frame = Net::AMQP::Frame::Method->new(
         method_frame => Net::AMQP::Protocol::Connection::Close->new(
 			reply_code => $args{code} // 320,
@@ -627,14 +651,7 @@ sub close {
 		),
     );
     $self->push_pending(
-        'Connection::CloseOk' => sub {
-            my ($self, $frame) = @_;
-            {
-                my $method_frame = $frame->method_frame;
-                $f->done($self);
-            }
-            weaken $f;
-        }
+        'Connection::CloseOk' => [ $f, $self ],
     );
     $self->send_frame($frame);
     return $f;
