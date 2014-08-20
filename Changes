@@ -1,6 +1,11 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new featues.
+
+	Tests fixed:
+	* Don't try to connect to a 'default' AMQP server,
+	skip if env vars were not provided
 
 0.004     2014-08-17 18:40:45+01:00 Europe/London
 	API CHANGES:

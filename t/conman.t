@@ -8,16 +8,18 @@ use Future::Utils;
 use IO::Async::Loop;
 use Net::Async::AMQP::ConnectionManager;
 
+plan skip_all => 'set NET_ASYNC_AMQP_HOST/USER/PASS/VHOST env vars to test' unless exists $ENV{NET_ASYNC_AMQP_HOST};
+
 my $loop = IO::Async::Loop->new;
 
 # Set up a connection manager with our MQ server details
 my $cm = Net::Async::AMQP::ConnectionManager->new;
 $loop->add($cm);
 $cm->add(
-  host  => 'localhost',
-  user  => 'guest',
-  pass  => 'guest',
-  vhost => '/',
+  host  => $ENV{NET_ASYNC_AMQP_HOST},
+  user  => $ENV{NET_ASYNC_AMQP_USER},
+  pass  => $ENV{NET_ASYNC_AMQP_PASS},
+  vhost => $ENV{NET_ASYNC_AMQP_VHOST},
 );
 
 my @seen;
