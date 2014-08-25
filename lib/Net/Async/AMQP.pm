@@ -934,9 +934,11 @@ sub process_frame {
     # First part of a frame. There's more to come, so stash a new future
     # and return.
     if($frame->isa('Net::AMQP::Frame::Header')) {
+		$self->{incoming_message}{$frame->channel}{type} = $frame->header_frame->type;
         if($frame->header_frame->headers) {
             eval {
-				$self->{incoming_message}{$frame->channel}{type} = $frame->header_frame->headers->{type};
+				$self->{incoming_message}{$frame->channel}{type} = $frame->header_frame->headers->{type}
+					if exists $frame->header_frame->headers->{type};
 				1
 			} or warn $@;
         }
