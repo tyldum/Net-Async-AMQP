@@ -658,8 +658,10 @@ sub close {
 }
 
 sub channel_closed {
-    my $self = shift;
-    delete $self->{channel_by_id}{+shift};
+    my ($self, $id) = @_;
+	my $ch = delete $self->{channel_map}{$id}
+		or die "Had a close indication for channel $id but this channel is unknown";
+    delete $self->{channel_by_id}{$ch};
     $self
 }
 
