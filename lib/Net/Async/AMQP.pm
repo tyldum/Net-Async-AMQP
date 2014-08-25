@@ -579,7 +579,7 @@ sub open_channel {
     my %args = @_;
     my $f = $self->loop->new_future;
     my $channel = $args{channel} // $self->next_channel;
-	die "This channel exists already" if exists $self->{channel_map}{$channel};
+	die "Channel " . $channel . " exists already" if exists $self->{channel_map}{$channel};
 	$self->{channel_map}{$channel} = $f;
 
     my $frame = Net::AMQP::Frame::Method->new(
