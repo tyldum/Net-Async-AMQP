@@ -1,6 +1,12 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* Handle channel close correctly
+	* Pass type information from messages - previously we were using the 'type' header
+	instead.
 
 0.005     2014-08-18 05:11:08+01:00 Europe/London
 	No new featues.
