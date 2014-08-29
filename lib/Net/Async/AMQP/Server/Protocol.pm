@@ -34,7 +34,7 @@ sub startup {
 	$self->write($frame->to_raw_frame);
     $self->push_pending(
         'Connection::StartOk' => $self->can('start_ok'),
-        'Connection::Close'  => $self->can('conn_close'),
+        'Connection::Close'   => $self->can('conn_close'),
 	);
 	$self->curry::weak::conn_start;
 }

@@ -15,13 +15,13 @@ sub protocol {
 	my $self = shift;
 	$self->{protocol} ||= Net::Async::AMQP::Server::Protocol->new(
 		write => $self->curry::weak::write,
-		loop => $self->loop,
+		future_factory => $self->loop->curry::weak::new_future,
 	)
 }
 
 sub on_read {
 	my ($self, $buffer, $eof) = @_;
-	warn "In main on_read, $$buffer\n";
+	$self->debug_printf("MQ connection - read %s", $$buffer);
 	return $self->protocol->on_read($buffer, $eof);
 }
 
