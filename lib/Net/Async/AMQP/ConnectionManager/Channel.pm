@@ -60,7 +60,7 @@ sub _listener_start {
 
 sub _listener_stop {
 	my ($self, $ev, $ctag) = @_;
-	warn "No longer need to clean up $ctag listener\n";
+	# warn "No longer need to clean up $ctag listener\n" if DEBUG;
 	delete $self->{cleanup}{"listener-$ctag"};
 }
 

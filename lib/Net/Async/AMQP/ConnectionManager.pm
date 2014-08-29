@@ -333,7 +333,6 @@ channels.
 
 sub mark_connection_full {
 	my ($self, $mq) = @_;
-
 }
 
 =head2 key_for_args
