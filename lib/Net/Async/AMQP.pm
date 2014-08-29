@@ -984,6 +984,10 @@ sub process_frame {
         return $self;
     }
 
+	if(my $ch = $self->channel_by_id($frame->channel)) {
+		return $self if $ch->next_pending($frame_type, $frame);
+	}
+
     $self->next_pending($frame_type, $frame);
 
     return $self;

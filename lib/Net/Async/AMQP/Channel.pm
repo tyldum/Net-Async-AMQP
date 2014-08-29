@@ -76,15 +76,15 @@ sub confirm_mode {
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-        channel => $self->id,
+#        channel => $self->id,
         method_frame => Net::AMQP::Protocol::Confirm::Select->new(
             nowait      => 0,
         )
     );
-    $self->amqp->push_pending(
+    $self->push_pending(
         'Confirm::SelectOk' => [ $f, $self ]
     );
-    $self->amqp->send_frame($frame);
+    $self->send_frame($frame);
     return $f;
 }
 
@@ -113,7 +113,7 @@ sub exchange_declare {
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-        channel => $self->id,
+#        channel => $self->id,
         method_frame => Net::AMQP::Protocol::Exchange::Declare->new(
             exchange    => $args{exchange},
             type        => $args{type},
@@ -125,10 +125,10 @@ sub exchange_declare {
             nowait      => 0,
         )
     );
-    $self->amqp->push_pending(
+    $self->push_pending(
         'Exchange::DeclareOk' => [ $f, $self ]
     );
-    $self->amqp->send_frame($frame);
+    $self->send_frame($frame);
     return $f;
 }
 
@@ -175,7 +175,7 @@ sub queue_declare {
                 nowait      => 0,
             )
         );
-        $self->amqp->push_pending(
+        $self->push_pending(
             'Queue::DeclareOk' => sub {
                 my ($amqp, $frame) = @_;
                 my $method_frame = $frame->method_frame;
@@ -238,10 +238,10 @@ sub publish {
 				weaken $f;
 				weaken $ack;
 			};
-			$self->amqp->push_pending(
+			$self->push_pending(
 				'Basic::Return' => $return,
 			);
-			$self->amqp->push_pending(
+			$self->push_pending(
 				'Basic::Ack' => $ack,
 			);
 		}
@@ -273,7 +273,7 @@ sub publish {
         );
         $self->send_frame(
             $_,
-            channel => $channel,
+#            channel => $channel,
         ) for @frames;
         $f
     })
@@ -303,12 +303,12 @@ sub qos {
     $self->future->then(sub {
         my $f = $self->loop->new_future;
         my $channel = $self->id;
-        $self->amqp->push_pending(
+        $self->push_pending(
             'Basic::QosOk' => [ $f, $self ],
         );
 
         my $frame = Net::AMQP::Frame::Method->new(
-            channel => $self->id,
+#            channel => $self->id,
             method_frame => Net::AMQP::Protocol::Basic::Qos->new(
                 nowait         => 0,
                 prefetch_count => $args{prefetch_count},
@@ -341,7 +341,7 @@ sub ack {
     $self->future->on_done(sub {
         my $channel = $id;
         my $frame = Net::AMQP::Frame::Method->new(
-            channel => $id,
+#            channel => $id,
             method_frame => Net::AMQP::Protocol::Basic::Ack->new(
                # nowait      => 0,
 				delivery_tag => $args{delivery_tag},
@@ -387,7 +387,13 @@ L<Net::Async::AMQP> instance.
 
 =cut
 
-sub send_frame { shift->amqp->send_frame(@_) }
+sub send_frame {
+	my $self = shift;
+	$self->amqp->send_frame(
+		@_,
+		channel => $self->id,
+	)
+}
 
 =head2 close
 
@@ -410,17 +416,102 @@ sub close {
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-        channel => $self->id,
+#        channel => $self->id,
         method_frame => Net::AMQP::Protocol::Channel::Close->new(
 			reply_code  => $args{code} // 404,
 			reply_text  => $args{text} // 'closing',
         )
     );
-    $self->amqp->push_pending(
+    $self->push_pending(
         'Channel::CloseOk' => [ $f, $self ],
     );
-    $self->amqp->send_frame($frame);
+    $self->send_frame($frame);
     return $f;
+}
+
+=head2 push_pending
+
+=cut
+
+sub push_pending {
+    my $self = shift;
+    while(@_) {
+        my ($type, $code) = splice @_, 0, 2;
+        push @{$self->{pending}{$type}}, $code;
+    }
+    return $self;
+}
+
+=head2 remove_pending
+
+Removes a coderef from the pending event handler.
+
+Returns C< $self >.
+
+=cut
+
+sub remove_pending {
+	my $self = shift;
+    while(@_) {
+        my ($type, $code) = splice @_, 0, 2;
+		# This is the same as extract_by { $_ eq $code } @{$self->{pending}{$type}};,
+		# but since we'll be calling it a lot might as well do it inline:
+		splice
+			@{$self->{pending}{$type}},
+			$_,
+			1 for grep {
+				$self->{pending}{$type}[$_] eq $code
+			} reverse 0..$#{$self->{pending}{$type}};
+    }
+    return $self;
+}
+
+=head2 next_pending
+
+Retrieves the next pending handler for the given incoming frame type (see L</get_frame_type>),
+and calls it.
+
+Takes the following parameters:
+
+=over 4
+
+=item * $type - the frame type, such as 'Basic::ConnectOk'
+
+=item * $frame - the frame itself
+
+=back
+
+Returns $self.
+
+=cut
+
+sub next_pending {
+    my $self = shift;
+    my $type = shift;
+    my $frame = shift;
+    warn "Check next pending for $type\n" if DEBUG;
+    if(my $next = shift @{$self->{pending}{$type} || []}) {
+		# We have a registered handler for this frame type. This usually
+		# means that we've sent a message and are awaiting a response.
+		if(ref($next) eq 'ARRAY') {
+			my ($f, @args) = @$next;
+			$f->done(@args) unless $f->is_ready;
+		} else {
+			$next->($self, $frame, @_);
+		}
+	} else {
+		# It's quite possible we'll see unsolicited frames back from
+		# the server: these will typically be errors, connection close,
+		# or consumer cancellation if the consumer_cancel_notify
+		# option is set (RabbitMQ). We don't expect many so report
+		# them when in debug mode.
+		return undef;
+		warn "We had no pending handlers for $type, raising as event" if DEBUG;
+		$self->bus->invoke_event(
+			unexpected_frame => $type, $frame
+		);
+	}
+    $self
 }
 
 =head1 METHODS - Accessors

@@ -83,8 +83,8 @@ The following methods are proxied to the L<Net::Async::AMQP> class.
 =cut
 
 sub write { shift->amqp->write(@_) }
-sub send_frame { shift->amqp->send_frame(@_) }
-sub push_pending { shift->amqp->push_pending(@_) }
+sub send_frame { shift->channel->send_frame(@_) }
+sub push_pending { shift->channel->push_pending(@_) }
 
 sub listen {
     my $self = shift;
@@ -157,7 +157,7 @@ sub bind_exchange {
         warn "Attempting to bind our queue [" . $self->queue_name . "] to exchange [" . $args{exchange} . "]" if DEBUG;
 
         my $frame = Net::AMQP::Frame::Method->new(
-            channel => $self->channel->id,
+#            channel => $self->channel->id,
             method_frame => Net::AMQP::Protocol::Queue::Bind->new(
                 queue       => $self->queue_name,
                 exchange    => $args{exchange},
@@ -190,7 +190,7 @@ sub delete {
         warn "Attempting to delete queue [" . $self->queue_name . "]" if DEBUG;
 
         my $frame = Net::AMQP::Frame::Method->new(
-            channel => $self->channel->id,
+#            channel => $self->channel->id,
             method_frame => Net::AMQP::Protocol::Queue::Delete->new(
                 queue       => $self->queue_name,
                 nowait      => 0,
