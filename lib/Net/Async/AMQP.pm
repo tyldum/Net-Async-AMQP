@@ -593,9 +593,9 @@ sub open_channel {
     ));
     $self->{channel_by_id}{$channel} = $c;
 	$self->debug_printf("Record channel %d as %s", $channel, $c);
-    $self->push_pending(
+    $c->push_pending(
         'Channel::OpenOk' => sub {
-            my ($self, $frame) = @_;
+            my ($c, $frame) = @_;
             {
                 my $method_frame = $frame->method_frame;
                 $self->{channel_map}{$frame->channel} = $c;
