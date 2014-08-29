@@ -231,7 +231,7 @@ sub publish {
 			$return = sub {
 				my ($amqp, $frame) = @_;
 				my $method_frame = $frame->method_frame;
-				$self->remove_pending('Basic::Ack' => $ack);
+				# $self->remove_pending('Basic::Ack' => $ack);
 				$f->fail(
                     $method_frame->reply_text,
                     code     => $method_frame->reply_code,
