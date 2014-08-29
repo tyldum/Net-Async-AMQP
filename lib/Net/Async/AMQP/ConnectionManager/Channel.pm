@@ -110,7 +110,7 @@ Takes the form "Channel[N]", where N is the ID.
 
 sub as_string {
 	my $self = shift;
-	sprintf "Channel[%d]", $self->id;
+	sprintf "ManagedChannel[%d]", $self->id;
 }
 
 =head2 DESTROY
