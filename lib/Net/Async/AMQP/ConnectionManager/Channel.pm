@@ -47,7 +47,7 @@ sub _listener_start {
 	my ($self, $ev, $ctag) = @_;
 	$self->{cleanup}{"listener-$ctag"} = sub {
 		my $self = shift;
-		warn "::: CLEANUP TASK - kill $ctag listener on $self\n";
+#		warn "::: CLEANUP TASK - kill $ctag listener on $self\n";
 		Net::Async::AMQP::Queue->new(
 			amqp => $self->amqp,
 			channel => $self,

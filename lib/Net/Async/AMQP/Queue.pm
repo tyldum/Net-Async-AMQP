@@ -115,7 +115,8 @@ sub listen {
 						)->set_label(
 							"Cancel $ctag"
 						)->on_fail(sub {
-							warn "FAIL cancel $ctag - @_"
+							# We should report this, but where to?
+							$self->debug_printf("Failed to cancel listener %s", $ctag);
 						})->else(sub {
 							Future->wrap
 						})
