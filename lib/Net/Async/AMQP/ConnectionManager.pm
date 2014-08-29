@@ -121,6 +121,7 @@ sub request_channel {
 	my $k = $self->key_for_args(\%args);
 	if(exists $self->{channel_by_key}{$k} && @{$self->{channel_by_key}{$k}}) {
 		my $ch = shift @{$self->{channel_by_key}{$k}};
+		$self->debug_printf("Assigning %d from by_key cache", $ch->id);
 		return Future->wrap(
 			Net::Async::AMQP::ConnectionManager::Channel->new(
 				channel => $ch,
@@ -136,6 +137,7 @@ sub request_channel {
 	if(exists $self->{closed_channel} && @{$self->{closed_channel}}) {
 		# If we have an ID for a closed channel then reuse that first.
 		my ($mq, $id) = @{shift @{$self->{closed_channel}}};
+		$self->debug_printf("Reopening closed channel %d", $id);
 		$f = $mq->open_channel(
 			channel => $id
 		);
@@ -181,6 +183,7 @@ sub request_channel {
 		done => sub {
 			my $ch = shift;
 			$self->{channel_args}{$ch->id} = \%args;
+			$self->debug_printf("Assigning newly-created channel %d", $ch->id);
 			Net::Async::AMQP::ConnectionManager::Channel->new(
 				channel => $ch,
 				manager => $self,
@@ -257,6 +260,7 @@ sub request_connection {
 	my ($self) = @_;
 	die "We are shutting down" if $self->{shutdown_future};
 	if(my $conn = $self->{pending_connection}) {
+		$self->debug_printf("Requested connection and we have one pending, returning that");
 		return $conn
 	}
 
