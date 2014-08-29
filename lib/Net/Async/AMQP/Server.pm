@@ -6,10 +6,25 @@ use warnings;
 use parent qw(IO::Async::Listener);
 
 use curry;
+use IO::Socket::IP;
 
 use Net::Async::AMQP::Server::Connection;
 
 =pod
+
+=cut
+
+=head2 configure
+
+Set up the instance.
+
+Takes teh following named parameters:
+
+=over 4
+
+=item *
+
+=back
 
 =cut
 
@@ -19,8 +34,28 @@ sub configure {
 	return $self->SUPER::configure(%args);
 }
 
+=head2 local_host
+
+Accessor for the current local_host setting.
+
+=cut
+
 sub local_host { shift->{local_host} }
+
+=head2 port
+
+Accessor for the current port setting
+
+=cut
+
 sub port { shift->{port} }
+
+=head2 listening
+
+Resolves with the listener.
+
+=cut
+
 sub listening {
 	my $self = shift;
 	$self->{listening} ||= $self->loop->new_future
@@ -31,7 +66,11 @@ sub notifier_name {
 	'NaAMQPServer=' . join ':', $self->local_host, $self->port
 }
 
-use IO::Socket::IP;
+=head2 on_listen
+
+Called when we have a listening socket.
+
+=cut
 
 sub on_listen {
 	my $self = shift;
@@ -55,10 +94,9 @@ sub _add_to_loop {
 			ip => ($self->local_host // '0.0.0.0'),
 		},
 		on_listen => $self->curry::weak::on_listen,
-
-		on_resolve_error => sub { print STDERR "Cannot resolve - $_[0]\n"; },
-		on_listen_error  => sub { print STDERR "Cannot listen\n"; },
-	);
+	)->then(sub {
+		$self->on_listen;
+	});
 }
 
 sub on_accept {
