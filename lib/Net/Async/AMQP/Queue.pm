@@ -69,13 +69,6 @@ sub channel { shift->{channel} }
 
 =cut
 
-sub new {
-    my $class = shift;
-    my $self = bless { @_ }, $class;
-    Scalar::Util::weaken($_) for @{$self}{qw/amqp channel/};
-    $self
-}
-
 =head1 PROXIED METHODS
 
 The following methods are proxied to the L<Net::Async::AMQP> class.
