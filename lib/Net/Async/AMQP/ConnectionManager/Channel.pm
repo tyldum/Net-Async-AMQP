@@ -29,7 +29,59 @@ sub new {
 	my $class = shift;
 	my $self = bless { @_ }, $class;
 	Scalar::Util::weaken($_) for @{$self}{qw(manager channel)};
+#	warn "Acquiring $self\n";
+	$self->bus->subscribe_to_event(
+		my @ev = (
+			listener_start => $self->curry::weak::_listener_start,
+			listener_stop  => $self->curry::weak::_listener_stop,
+		)
+	);
+	$self->{cleanup}{events} = sub {
+		shift->bus->unsubscribe_from_event(@ev);
+		Future->wrap;
+	};
 	$self
+}
+
+sub _listener_start {
+	my ($self, $ev, $ctag) = @_;
+	$self->{cleanup}{"listener-$ctag"} = sub {
+		my $self = shift;
+		warn "::: CLEANUP TASK - kill $ctag listener on $self\n";
+		Net::Async::AMQP::Queue->new(
+			amqp => $self->amqp,
+			channel => $self,
+			future => Future->wrap
+		)->cancel(
+			consumer_tag => $ctag
+		)
+	};
+}
+
+sub _listener_stop {
+	my ($self, $ev, $ctag) = @_;
+	warn "No longer need to clean up $ctag listener\n";
+	delete $self->{cleanup}{"listener-$ctag"};
+}
+
+=head2 queue_declare
+
+=cut
+
+sub queue_declare {
+	my ($self, %args) = @_;
+	$self->channel->queue_declare(%args)->transform(
+		done => sub {
+			my ($q) = @_;
+			# Ensure that this wrapped channel is used
+			# as the stored channel value. This means
+			# the channel holds the queue, we hold a weakref
+			# to the channel, and the queue holds a strong
+			# ref to our channel wrapper.
+			$q->configure(channel => $self);
+			$q
+		}
+	)
 }
 
 =head2 channel
