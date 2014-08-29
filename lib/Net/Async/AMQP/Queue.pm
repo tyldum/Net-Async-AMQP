@@ -43,10 +43,10 @@ use constant DEBUG => Net::Async::AMQP->DEBUG;
 
 sub configure {
 	my ($self, %args) = @_;
-	for(grep exists $args{$_}, qw(amqp channel)) {
+	for(grep exists $args{$_}, qw(amqp)) {
 		Scalar::Util::weaken($self->{$_} = delete $args{$_})
 	}
-	for(grep exists $args{$_}, qw(future)) {
+	for(grep exists $args{$_}, qw(future channel)) {
 		$self->{$_} = delete $args{$_};
 	}
     $self->SUPER::configure(%args);

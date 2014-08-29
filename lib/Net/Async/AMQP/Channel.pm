@@ -152,12 +152,20 @@ sub queue_declare {
     $self->future->then(sub {
         warn "queue decl\n" if DEBUG;
         my $f = $self->loop->new_future;
-        $self->add_child(my $q = Net::Async::AMQP::Queue->new(
-            amqp   => $self->amqp,
-            future => $f,
-        ));
+        $self->add_child(
+			my $q = Net::Async::AMQP::Queue->new(
+				amqp    => $self->amqp,
+				future  => $f,
+				channel => $self,
+			)
+		);
+		# Avoid the cycle caused by self -> children [ queue ],
+		# but do it outside the queue object so that we
+		# can assign a different channel elsewhere without
+		# triggering cleanup logic as soon as that channel
+		# goes out of scope.
+		Scalar::Util::weaken($q->{channel});
         warn "Attempting to declare our queue" if DEBUG;
-        $q->configure(channel => $self);
         my $frame = Net::AMQP::Frame::Method->new(
             channel => $self->id,
             method_frame => Net::AMQP::Protocol::Queue::Declare->new(
