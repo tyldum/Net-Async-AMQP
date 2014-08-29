@@ -125,19 +125,23 @@ any trailing consumers, for example. These are held in the cleanup hash.
 
 sub DESTROY {
 	my $self = shift;
-	my $conman = delete $self->{manager};
-	my $ch = delete $self->{channel};
-	$conman->debug_printf("Releasing channel %d", $ch->id);
-	return $conman->release_channel($ch) unless $self->{cleanup};
+	unless($self->{cleanup}) {
+#		warn "Releasing $self without cleanup\n";
+		my $conman = delete $self->{manager};
+		return $conman->release_channel(delete $self->{channel});
+	}
+
+#	warn "Releasing $self\n";
 	my $f;
 	$f = (
 		fmap_void {
-			$_->()
+			$_->($self)
 		} foreach => [
 			sort values %{$self->{cleanup}}
 		]
 	)->on_ready(sub {
-		$conman->release_channel($ch);
+		my $conman = delete $self->{manager};
+		$conman->release_channel(delete $self->{channel});
 		undef $f;
 	});
 }
