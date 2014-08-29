@@ -268,13 +268,14 @@ sub request_connection {
 		$self->debug_printf("Assigning existing connection");
 		return Future->wrap(
 			Net::Async::AMQP::ConnectionManager::Connection->new(
-				amqp    => shift @{$self->{available_connections}},
+				amqp    => $self->{available_connections}[0],
 				manager => $self,
 			)
 		)
 	}
 	die "No connection details available" unless $self->{amqp_host};
 
+	$self->debug_printf("New connection is required");
 	$self->{pending_connection} = $self->connect(
 		%{$self->next_host}
 	)->on_ready(sub {
@@ -282,10 +283,12 @@ sub request_connection {
 	})->transform(
 		done => sub {
 			my $mq = shift;
-			Net::Async::AMQP::ConnectionManager::Connection->new(
+			my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
 				amqp    => $mq,
 				manager => $self,
-			)
+			);
+			push @{$self->{available_connections}}, $conn;
+			$conn
 		}
 	)->set_label(
 		'Connect to MQ server'
