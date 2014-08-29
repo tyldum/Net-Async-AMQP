@@ -76,7 +76,6 @@ sub confirm_mode {
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-#        channel => $self->id,
         method_frame => Net::AMQP::Protocol::Confirm::Select->new(
             nowait      => 0,
         )
@@ -113,7 +112,6 @@ sub exchange_declare {
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-#        channel => $self->id,
         method_frame => Net::AMQP::Protocol::Exchange::Declare->new(
             exchange    => $args{exchange},
             type        => $args{type},
@@ -167,7 +165,6 @@ sub queue_declare {
 		Scalar::Util::weaken($q->{channel});
         warn "Attempting to declare our queue" if DEBUG;
         my $frame = Net::AMQP::Frame::Method->new(
-            channel => $self->id,
             method_frame => Net::AMQP::Protocol::Queue::Declare->new(
                 queue       => $args{queue},
                 passive     => $args{passive} || 0,
@@ -218,7 +215,6 @@ sub publish {
 
     $self->future->then(sub {
         my $f = $self->loop->new_future;
-        my $channel = $self->id;
 		{ # When publishing a message, we should expect either an ACK, or a return.
 		  # Since these are mutually exclusive, we also need to remove the pending
 		  # handler for the opposing event once one event has been received. Note
@@ -228,22 +224,20 @@ sub publish {
 			my $ack = sub {
 				my ($amqp, $frame) = @_;
 				my $method_frame = $frame->method_frame;
-				$amqp->remove_pending('Basic::Return' => $return);
+				$self->remove_pending('Basic::Return' => $return);
 				$f->done unless $f->is_ready;
-				weaken $f;
 				weaken $return;
 			};
 			$return = sub {
 				my ($amqp, $frame) = @_;
 				my $method_frame = $frame->method_frame;
-				$amqp->remove_pending('Basic::Ack' => $ack);
+				$self->remove_pending('Basic::Ack' => $ack);
 				$f->fail(
                     $method_frame->reply_text,
                     code     => $method_frame->reply_code,
                     exchange => $method_frame->exchange,
                     rkey     => $method_frame->routing_key
-                ) unless $f->is_cancelled;
-				weaken $f;
+                ) unless $f->is_ready;
 				weaken $ack;
 			};
 			$self->push_pending(
@@ -281,7 +275,6 @@ sub publish {
         );
         $self->send_frame(
             $_,
-#            channel => $channel,
         ) for @frames;
         $f
     })
@@ -316,7 +309,6 @@ sub qos {
         );
 
         my $frame = Net::AMQP::Frame::Method->new(
-#            channel => $self->id,
             method_frame => Net::AMQP::Protocol::Basic::Qos->new(
                 nowait         => 0,
                 prefetch_count => $args{prefetch_count},
@@ -349,7 +341,6 @@ sub ack {
     $self->future->on_done(sub {
         my $channel = $id;
         my $frame = Net::AMQP::Frame::Method->new(
-#            channel => $id,
             method_frame => Net::AMQP::Protocol::Basic::Ack->new(
                # nowait      => 0,
 				delivery_tag => $args{delivery_tag},
@@ -424,7 +415,6 @@ sub close {
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
-#        channel => $self->id,
         method_frame => Net::AMQP::Protocol::Channel::Close->new(
 			reply_code  => $args{code} // 404,
 			reply_text  => $args{text} // 'closing',
@@ -513,11 +503,8 @@ sub next_pending {
 		# or consumer cancellation if the consumer_cancel_notify
 		# option is set (RabbitMQ). We don't expect many so report
 		# them when in debug mode.
+		warn "We had no pending handlers for $type";
 		return undef;
-		warn "We had no pending handlers for $type, raising as event" if DEBUG;
-		$self->bus->invoke_event(
-			unexpected_frame => $type, $frame
-		);
 	}
     $self
 }
@@ -578,30 +565,6 @@ sub as_string {
 	sprintf "Channel[%d]", $self->id;
 }
 
-{
-package Net::Async::AMQP::Channel::Helper;
-
-sub new { bless { channel => $_[1] }, $_[0] }
-sub channel { shift->{channel} }
-sub DESTROY {
-	my $self = shift;
-	$self->channel->release if $self->channel;
-}
-
-our $AUTOLOAD;
-sub AUTOLOAD {
-	my $self = shift;
-	(my $method = $AUTOLOAD) =~ s/^.*:://;
-	warn "Adding new autoload method $method\n";
-	my $code = $self->channel->${\"curry::weak::$method"}->();
-	*{"__PACKAGE__::$method"} = $code;
-	$code->(@_);
-}
-
-sub diagnostics {
-	my ($d, $level) = @_;
-}
-}
 1;
 
 __END__
