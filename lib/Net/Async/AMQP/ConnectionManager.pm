@@ -368,6 +368,7 @@ Releases the given channel back to our channel pool.
 
 sub release_channel {
 	my ($self, $ch) = @_;
+	$self->debug_printf("Releasing channel %d", $ch->id);
 	my $args = $self->{channel_args}{$ch->id};
 	my $k = $self->key_for_args($args);
 	push @{$self->{channel_by_key}{$k}}, $ch;
