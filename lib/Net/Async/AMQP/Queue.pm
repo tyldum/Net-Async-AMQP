@@ -100,10 +100,31 @@ sub listen {
         $self->push_pending(
             'Basic::ConsumeOk' => (sub {
                 my ($amqp, $frame) = @_;
-                $f->done($self => $frame->method_frame->consumer_tag) unless $f->is_ready;
+				my $ctag = $frame->method_frame->consumer_tag;
+				$self->channel->bus->invoke_event(
+					listener_start => $ctag
+				);
+
+				# If we were cancelled before we received the OK response,
+				# that's mildly awkward - we need to cancel the consumer,
+				# note that messages may be delivered in the interim.
+				if($f->is_cancelled) {
+					$self->adopt_future(
+						$self->cancel(
+							consumer_tag => $ctag
+						)->set_label(
+							"Cancel $ctag"
+						)->on_fail(sub {
+							warn "FAIL cancel $ctag - @_"
+						})->else(sub {
+							Future->wrap
+						})
+					)
+				}
+                $f->done($self => $ctag) unless $f->is_ready;
             })
         );
-        $self->send_frame($frame, channel => $self->channel->id);
+        $self->send_frame($frame);
         $f;
     });
 }
@@ -118,25 +139,32 @@ sub cancel {
     my $self = shift;
     my %args = @_;
 
-    # Attempt to bind after we've successfully declared the exchange.
-    $self->future->then(sub {
-        my $f = $self->loop->new_future;
-        warn "Attempting to cancel consumer [" . $args{consumer_tag} . "]\n" if DEBUG;
+	my $f = $self->loop->new_future;
+    $self->adopt_future(
+		$f->else(sub { Future->wrap })
+	);
 
-        my $frame = Net::AMQP::Protocol::Basic::Cancel->new(
-            consumer_tag => $args{consumer_tag},
-            nowait       => 0,
-        );
-        $self->push_pending(
-            'Basic::CancelOk' => (sub {
-                my ($amqp, $frame) = @_;
-                $f->done($self => $frame->method_frame->consumer_tag) unless $f->is_cancelled;
-				weaken $f;
-            })
-        );
-        $self->send_frame($frame, channel => $self->channel->id);
-        $f;
-    });
+    # Attempt to bind after we've successfully declared the exchange.
+	$self->future->then(sub {
+		warn "Attempting to cancel consumer [" . $args{consumer_tag} . "]\n" if DEBUG;
+
+		my $frame = Net::AMQP::Protocol::Basic::Cancel->new(
+			consumer_tag => $args{consumer_tag},
+			nowait       => 0,
+		);
+		$self->push_pending(
+			'Basic::CancelOk' => (sub {
+				my ($amqp, $frame) = @_;
+				my $ctag = $frame->method_frame->consumer_tag;
+				$self->channel->bus->invoke_event(
+					listener_stop => $ctag
+				);
+				$f->done($self => $ctag) unless $f->is_cancelled;
+			})
+		);
+		$self->send_frame($frame);
+		$f;
+	});
 }
 
 sub bind_exchange {
