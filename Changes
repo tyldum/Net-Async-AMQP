@@ -1,6 +1,16 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* Channel traffic is independent. As such, the global pending frame handling
+	was broken: instead, we now track pending frames on a per-channel basis.
+	* Cancelling a ->listen request between the Consume.Start and Consume.Ok frames
+	meant that you'd end up with an active listener - we now explicitly cancel this
+	listener when the Consume.Ok frame turns up.
+	* Connection manager now applies the managed channel to queue objects
+	* Unnecessary extra connections were being opened, this has been fixed.
 
 0.006     2014-08-25 18:01:14+01:00 Europe/London
 	No new features.
