@@ -1080,7 +1080,7 @@ sub send_frame {
     # Apply defaults and wrap as required
     $frame = $frame->frame_wrap if $frame->isa("Net::AMQP::Protocol::Base");
     $frame->channel($args{channel} // 0) unless defined $frame->channel;
-    warn "Sending frame " . Dumper $frame if DEBUG;
+#    warn "Sending frame " . Dumper($frame) if DEBUG;
 
     # Get bytes to send across our transport
     my $data = $frame->to_raw_frame;
