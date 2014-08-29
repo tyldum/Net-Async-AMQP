@@ -141,7 +141,7 @@ sub DESTROY {
 		]
 	)->on_ready(sub {
 		my $conman = delete $self->{manager};
-		$conman->release_channel(delete $self->{channel});
+		$conman->release_channel(delete $self->{channel}) if $conman;
 		undef $f;
 	});
 }

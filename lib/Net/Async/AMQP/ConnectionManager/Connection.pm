@@ -45,7 +45,9 @@ that we no longer require the data.
 
 sub DESTROY {
 	my $self = shift;
-	(delete $self->{manager})->release_connection(delete $self->{amqp});
+	my $conman = delete $self->{manager};
+	my $amqp = delete $self->{amqp};
+	$conman->release_connection($amqp) if $conman && $amqp;
 }
 
 {
