@@ -31,6 +31,9 @@ Does AMQP things. Note that the API may change before the stable 1.000
 release - L</SEE ALSO> has some alternative modules if you're looking for
 something that has been around for longer.
 
+If you want a higher-level API which manages channels and connections, try
+L<Net::Async::AMQP::ConnectionManager>.
+
 =cut
 
 use Net::AMQP;
@@ -67,7 +70,7 @@ use constant PAYLOAD_HEADER_LENGTH => 8;
 =head2 MAX_FRAME_SIZE
 
 Largest amount of data we'll attempt to send in a single frame. Actual
-frame limit will be negotiated with the remote server.
+frame limit will be negotiated with the remote server. Defaults to 262144.
 
 =cut
 
@@ -76,7 +79,8 @@ use constant MAX_FRAME_SIZE        => 262144;
 =head2 MAX_CHANNELS
 
 Maximum number of channels to request. Defaults to the AMQP limit (65535).
-Attempting to set this any higher will not end well.
+Attempting to set this any higher will not end well, it's an unsigned 16-bit
+value.
 
 =cut
 
