@@ -677,7 +677,7 @@ sub next_pending {
 		# or consumer cancellation if the consumer_cancel_notify
 		# option is set (RabbitMQ). We don't expect many so report
 		# them when in debug mode.
-		warn "We had no pending handlers for $type, raising as event" if DEBUG;
+		$self->debug_printf("We had no pending handlers for %s, raising as event", $type);
 		$self->bus->invoke_event(
 			unexpected_frame => $type, $frame
 		);
@@ -721,7 +721,8 @@ sub user { shift->{user} }
 
 =head2 frame_max
 
-Maximum number of bytes allowed in any given frame.
+Maximum number of bytes allowed in any given frame. This is the
+value negotiated with the remote server.
 
 =cut
 
@@ -735,7 +736,7 @@ sub frame_max {
 
 =head2 channel_max
 
-Maximum number of channels.
+Maximum number of channels. This is whatever we ended up with after initial negotiation.
 
 =cut
 
@@ -749,8 +750,7 @@ sub channel_max {
 
 =head2 last_frame_time
 
-Timestamp of the last frame we received from
-the remote. Used for handling heartbeats.
+Timestamp of the last frame we received from the remote. Used for handling heartbeats.
 
 =cut
 
