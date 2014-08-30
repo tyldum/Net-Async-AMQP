@@ -895,71 +895,30 @@ Returns $self.
 =cut
 
 sub process_frame {
-    my $self = shift;
-    my $frame = shift;
+    my ($self, $frame) = @_;
+	if(my $ch = $self->channel_by_id($frame->channel)) {
+		return $self if $ch->next_pending($frame);
+	}
+
+    my $frame_type = $self->get_frame_type($frame);
 
 	# Basic::Deliver - we're delivering a message to a ctag
 	# Frame::Header - header part of message
 	# Frame::Body* - body content
-    warn "Processing frame $self => $frame\n" if DEBUG;
-    # First part of a frame. There's more to come, so stash a new future
-    # and return.
-    if($frame->isa('Net::AMQP::Frame::Header')) {
-		$self->{incoming_message}{$frame->channel}{type} = $frame->header_frame->type;
-        if($frame->header_frame->headers) {
-            eval {
-				$self->{incoming_message}{$frame->channel}{type} = $frame->header_frame->headers->{type}
-					if exists $frame->header_frame->headers->{type};
-				1
-			} or warn $@;
-        }
-        unless($frame->body_size) {
-            $self->{incoming_message}{$frame->channel}{payload} = '';
-            $self->{channel_map}{$frame->channel}->bus->invoke_event(
-                message => @{$self->{incoming_message}{$frame->channel}}{qw(type payload ctag dtag rkey)},
-            );
-            delete $self->{incoming_message}{$frame->channel};
-        }
-        return $self;
-    }
+    $self->debug_printf("Processing connection frame %s => %s", $self, $frame);
 
-    # Body part of an incoming message.
-    # TODO should handle multiple chunks?
-    if($frame->isa('Net::AMQP::Frame::Body')) {
-        $self->{incoming_message}{$frame->channel}{payload} = $frame->payload;
-        $self->{channel_map}{$frame->channel}->bus->invoke_event(
-            message => @{$self->{incoming_message}{$frame->channel}}{qw(type payload ctag dtag rkey)},
-        );
-        delete $self->{incoming_message}{$frame->channel};
-        return $self;
-    }
-    return $self unless $frame->can('method_frame');
-
-    my $frame_type = $self->get_frame_type($frame);
-    if($frame_type eq 'Basic::Deliver') {
-        warn "Already have incoming_message?" if DEBUG && exists $self->{incoming_message}{$frame->channel};
-        $self->{incoming_message}{$frame->channel} = {
-            ctag => $frame->method_frame->consumer_tag,
-            dtag => $frame->method_frame->delivery_tag,
-            rkey => $frame->method_frame->routing_key,
-        };
-        return $self;
-    }
+    $self->next_pending($frame_type, $frame);
+	return $self;
 
     # Any channel errors will be represented as a channel close event
     if($frame_type eq 'Channel::Close') {
-        warn "Channel was " . $frame->channel . ", calling close\n" if DEBUG;
+        $self->debug_printf("Channel was %d, calling close", $frame->channel);
         $self->channel_by_id($frame->channel)->on_close(
             $frame->method_frame
         );
         return $self;
     }
 
-	if(my $ch = $self->channel_by_id($frame->channel)) {
-		return $self if $ch->next_pending($frame_type, $frame);
-	}
-
-    $self->next_pending($frame_type, $frame);
 
     return $self;
 }

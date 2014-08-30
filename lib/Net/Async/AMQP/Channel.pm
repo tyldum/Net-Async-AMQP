@@ -484,10 +484,48 @@ Returns $self.
 =cut
 
 sub next_pending {
-    my $self = shift;
-    my $type = shift;
-    my $frame = shift;
-    warn "Check next pending for $type\n" if DEBUG;
+    my ($self, $frame) = @_;
+
+	# T'ain't a pending frame. Nil fucking desperandum, it may just be a message
+
+    # First part of a frame. There's more to come, so stash a new future
+    # and return.
+    if($frame->isa('Net::AMQP::Frame::Header')) {
+		$self->{incoming_message}{type} = $frame->header_frame->type;
+        if($frame->header_frame->headers) {
+            eval {
+				$self->{incoming_message}{type} = $frame->header_frame->headers->{type}
+					if exists $frame->header_frame->headers->{type};
+				1
+			} or $self->debug_printf("Unexpected exception while doing something: %s", $@);
+        }
+
+		# Messages may be empty - in this case we'd have no body frames at all, we're done already:
+        unless($frame->body_size) {
+            $self->{incoming_message}{payload} = '';
+            $self->bus->invoke_event(
+                message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
+            );
+            delete $self->{incoming_message};
+        }
+
+        return $self;
+    }
+
+    # Body part of an incoming message.
+    # TODO should handle multiple chunks?
+    if($frame->isa('Net::AMQP::Frame::Body')) {
+        $self->{incoming_message}{payload} = $frame->payload;
+        $self->bus->invoke_event(
+            message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
+        );
+        delete $self->{incoming_message};
+        return $self;
+    }
+
+    return $self unless $frame->can('method_frame') && (my $method_frame = $frame->method_frame);
+    my $type = $self->amqp->get_frame_type($frame);
+
     if(my $next = shift @{$self->{pending}{$type} || []}) {
 		# We have a registered handler for this frame type. This usually
 		# means that we've sent a message and are awaiting a response.
@@ -497,16 +535,36 @@ sub next_pending {
 		} else {
 			$next->($self, $frame, @_);
 		}
-	} else {
-		# It's quite possible we'll see unsolicited frames back from
-		# the server: these will typically be errors, connection close,
-		# or consumer cancellation if the consumer_cancel_notify
-		# option is set (RabbitMQ). We don't expect many so report
-		# them when in debug mode.
-		warn "We had no pending handlers for $type";
-		return undef;
+		return $self;
 	}
-    $self
+
+	# Message delivery, part 3: The "Deliver" message.
+	# This is actually where we start.
+    if($type eq 'Basic::Deliver') {
+        $self->debug_printf("Already have incoming_message?") if exists $self->{incoming_message};
+        $self->{incoming_message} = {
+            ctag => $method_frame->consumer_tag,
+            dtag => $method_frame->delivery_tag,
+            rkey => $method_frame->routing_key,
+        };
+        return $self;
+    }
+
+    if($type eq 'Channel::Close') {
+        $self->debug_printf("Channel was %d, calling close", $frame->channel);
+        $self->on_close(
+            $method_frame
+        );
+        return $self;
+    }
+
+	# It's quite possible we'll see unsolicited frames back from
+	# the server: these will typically be errors, connection close,
+	# or consumer cancellation if the consumer_cancel_notify
+	# option is set (RabbitMQ). We don't expect many so report
+	# them when in debug mode.
+	warn "We had no pending handlers for $type";
+	return undef;
 }
 
 =head1 METHODS - Accessors
