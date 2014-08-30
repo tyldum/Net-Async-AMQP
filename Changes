@@ -1,6 +1,22 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	New features:
+	* Debugging uses ->debug_printf() everywhere, and is controlled by the
+	standard IO_ASYNC_DEBUG env var
+	* Basic server implementation, still not usable but clients can at least
+	connect now
+	* All channel frames are now handled by the relevant ::Channel instance,
+	should provide slightly better performance and less chance for things
+	to go out of sync
+
+	Bugs fixed:
+	* Expect publish ACK even when we get a NO_ROUTE response 
+	* Explicit string type enforced on all queue/exchange/routing key/ctag
+	fields, to allow numeric-looking values - a precaution against issues like
+	https://rt.cpan.org/Ticket/Display.html?id=81733
+	* Avoid excessive warnings in global destruction when the
+	Net::Async::AMQP::ConnectionManager objects go out of scope.
 
 0.007     2014-08-27 03:27:09+01:00 Europe/London
 	No new features.
