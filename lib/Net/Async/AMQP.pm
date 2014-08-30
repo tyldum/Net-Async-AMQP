@@ -664,7 +664,7 @@ sub next_pending {
 
     if(my $next = shift @{$self->{pending}{$type} || []}) {
 		# We have a registered handler for this frame type. This usually
-		# means that we've sent a message and are awaiting a response.
+		# means that we've sent a frame and are awaiting a response.
 		if(ref($next) eq 'ARRAY') {
 			my ($f, @args) = @$next;
 			$f->done(@args) unless $f->is_ready;
