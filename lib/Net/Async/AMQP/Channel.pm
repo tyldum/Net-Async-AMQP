@@ -113,8 +113,8 @@ sub exchange_declare {
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
         method_frame => Net::AMQP::Protocol::Exchange::Declare->new(
-            exchange    => $args{exchange},
-            type        => $args{type},
+            exchange    => Net::AMQP::Value::String->new($args{exchange}),
+            type        => Net::AMQP::Value::String->new($args{type}),
             passive     => $args{passive} || 0,
             durable     => $args{durable} || 0,
             auto_delete => $args{auto_delete} || 0,
@@ -166,7 +166,7 @@ sub queue_declare {
         warn "Attempting to declare our queue" if DEBUG;
         my $frame = Net::AMQP::Frame::Method->new(
             method_frame => Net::AMQP::Protocol::Queue::Declare->new(
-                queue       => $args{queue},
+                queue       => Net::AMQP::Value::String->new($args{queue}),
                 passive     => $args{passive} || 0,
                 durable     => $args{durable} || 0,
                 exclusive   => $args{exclusive} || 0,
@@ -250,15 +250,15 @@ sub publish {
 
         my @frames = $self->amqp->split_payload(
             $args{payload},
-            exchange         => $args{exchange},
+            exchange         => Net::AMQP::Value::String->new($args{exchange}),
             mandatory		 => $args{mandatory} // 0,
             immediate        => 0,
-            (exists $args{routing_key} ? (routing_key => $args{routing_key}) : ()),
+            (exists $args{routing_key} ? (routing_key => Net::AMQP::Value::String->new($args{routing_key})) : ()),
             ticket           => 0,
             content_type     => 'application/binary',
             content_encoding => undef,
             timestamp        => time,
-            type             => $args{type},
+            type             => Net::AMQP::Value::String->new($args{type}),
             user_id          => $self->amqp->user,
             no_ack           => 0,
 #            headers          => {
@@ -344,7 +344,7 @@ sub ack {
             method_frame => Net::AMQP::Protocol::Basic::Ack->new(
                # nowait      => 0,
 				delivery_tag => $args{delivery_tag},
-				multiple	=> $args{multiple} // 0,
+				multiple     => $args{multiple} // 0,
             )
         );
         $self->send_frame($frame);
@@ -358,7 +358,7 @@ Example output:
         'method_id' => 40,
         'reply_code' => 404,
         'class_id' => 60,
-        'reply_text' => 'NOT_FOUND - no exchange \'invalidchan\' in vhost \'mv\''
+        'reply_text' => 'NOT_FOUND - no exchange \'invalidchan\' in vhost \'vhost\''
 
 =cut
 

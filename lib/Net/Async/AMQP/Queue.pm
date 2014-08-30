@@ -89,8 +89,8 @@ sub listen {
         warn "Attempting to listen for events on queue [" . $self->queue_name . "]\n" if DEBUG;
 
         my $frame = Net::AMQP::Protocol::Basic::Consume->new(
-            queue        => $self->queue_name,
-            consumer_tag => '',
+            queue        => Net::AMQP::Value::String->new($self->queue_name),
+            consumer_tag => (exists $args{consumer_tag} ? Net::AMQP::Value::String->new($args{consumer_tag}) : ''),
             no_local     => 0,
             no_ack       => ($args{ack} ? 0 : 1),
             exclusive    => 0,
@@ -150,7 +150,7 @@ sub cancel {
 		warn "Attempting to cancel consumer [" . $args{consumer_tag} . "]\n" if DEBUG;
 
 		my $frame = Net::AMQP::Protocol::Basic::Cancel->new(
-			consumer_tag => $args{consumer_tag},
+			consumer_tag => Net::AMQP::Value::String->new($args{consumer_tag}),
 			nowait       => 0,
 		);
 		$self->push_pending(
@@ -181,9 +181,9 @@ sub bind_exchange {
         my $frame = Net::AMQP::Frame::Method->new(
 #            channel => $self->channel->id,
             method_frame => Net::AMQP::Protocol::Queue::Bind->new(
-                queue       => $self->queue_name,
-                exchange    => $args{exchange},
-                (exists($args{routing_key}) ? ('routing_key' => $args{routing_key}) : ()),
+                queue       => Net::AMQP::Value::String->new($self->queue_name),
+                exchange    => Net::AMQP::Value::String->new($args{exchange}),
+                (exists($args{routing_key}) ? ('routing_key' => Net::AMQP::Value::String->new($args{routing_key})) : ()),
                 ticket      => 0,
                 nowait      => 0,
             )
@@ -214,7 +214,7 @@ sub delete {
         my $frame = Net::AMQP::Frame::Method->new(
 #            channel => $self->channel->id,
             method_frame => Net::AMQP::Protocol::Queue::Delete->new(
-                queue       => $self->queue_name,
+                queue       => Net::AMQP::Value::String->new($self->queue_name),
                 nowait      => 0,
             )
         );
