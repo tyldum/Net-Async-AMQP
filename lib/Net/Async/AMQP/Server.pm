@@ -102,7 +102,7 @@ sub _add_to_loop {
 
 sub on_accept {
 	my ($self, $sock) = @_;
-	warn "Incoming: $sock\n";
+	$self->debug_printf("Incoming: $sock");
 	my $stream = Net::Async::AMQP::Server::Connection->new(
 		handle => $sock,
 	);

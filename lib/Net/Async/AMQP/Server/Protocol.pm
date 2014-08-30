@@ -16,13 +16,13 @@ sub on_read {
 	return 0 unless length $$buffer >= length Net::AMQP::Protocol->header;
 	$self->{initial_header} = substr $$buffer, 0, length Net::AMQP::Protocol->header, '';
 	my ($proto, $version) = $self->{initial_header} =~ /^(AMQP)(....)/ or die "Invalid header received: " . sprintf "%v02x", $self->{initial_header};
-	warn "Protocol $proto, version " . join '.', sprintf '%08x', unpack 'N1', $version;
+	$self->debug_printf("Protocol $proto, version " . join '.', sprintf '%08x', unpack 'N1', $version);
 	$self->curry::weak::startup;
 }
 
 sub startup {
 	my ($self, $stream, $buffer, $eof) = @_;
-	warn "In startup: @_";
+	$self->debug_printf("In startup: @_");
 	my $frame = Net::AMQP::Frame::Method->new(
 		channel => 0,
 		method_frame => Net::AMQP::Protocol::Connection::Start->new(
@@ -126,9 +126,9 @@ use Data::Dumper;
 
 sub conn_start {
 	my ($self, $stream, $buffer, $eof) = @_;
-	warn "Have " . length($$buffer) . " bytes of post-connect data\n";
+	$self->debug_printf("Have " . length($$buffer) . " bytes of post-connect data");
 	for my $frame (Net::AMQP->parse_raw_frames($buffer)) {
-		warn ":: Frame $frame\n" . Dumper($frame);
+		$self->debug_printf(":: Frame $frame" . Dumper($frame));
 		$self->process_frame($frame);
 	}
 	0;
@@ -136,11 +136,11 @@ sub conn_start {
 
 sub start_ok {
 	my ($self, $frame) = @_;
-	warn "Start okay:\n";
+	$self->debug_printf("Start okay:\n");
 	my $method_frame = $frame->method_frame;
-	warn "Auth:     " . $method_frame->mechanism, "\n";
-	warn "Locale:   " . $method_frame->locale, "\n";
-	warn "Response: " . $method_frame->response, "\n";
+	$self->debug_printf("Auth:     " . $method_frame->mechanism);
+	$self->debug_printf("Locale:   " . $method_frame->locale);
+	$self->debug_printf("Response: " . $method_frame->response);
 	$self->send_frame(
 		Net::AMQP::Protocol::Connection::Tune->new(
 			channel_max => 12 || $self->channel_max,
@@ -183,11 +183,11 @@ sub frame_max {
 }
 sub tune_ok {
 	my ($self, $frame) = @_;
-	warn "Tune okay:\n";
+	$self->debug_printf("Tune okay:");
 	my $method_frame = $frame->method_frame;
-	warn "Channels:  " . $method_frame->channel_max, "\n";
-	warn "Max size:  " . $method_frame->frame_max, "\n";
-	warn "Heartbeat: " . $method_frame->heartbeat, "\n";
+	$self->debug_printf("Channels:  " . $method_frame->channel_max);
+	$self->debug_printf("Max size:  " . $method_frame->frame_max);
+	$self->debug_printf("Heartbeat: " . $method_frame->heartbeat);
 	$self->send_frame(
 		Net::AMQP::Protocol::Connection::OpenOk->new(
 			reserved_1 => '',
@@ -226,12 +226,12 @@ sub get_frame_type {
 
 sub conn_close {
 	my ($self, $frame) = @_;
-	warn "Close request\n";
+	$self->debug_printf("Close request");
 	my $method_frame = $frame->method_frame;
-	warn "Code:   " . $method_frame->reply_code, "\n";
-	warn "Text:   " . $method_frame->reply_text, "\n";
-	warn "Class:  " . $method_frame->class_id, "\n";
-	warn "Method: " . $method_frame->method_id, "\n";
+	$self->debug_printf("Code:   " . $method_frame->reply_code);
+	$self->debug_printf("Text:   " . $method_frame->reply_text);
+	$self->debug_printf("Class:  " . $method_frame->class_id);
+	$self->debug_printf("Method: " . $method_frame->method_id);
 	$self->send_frame(
 		Net::AMQP::Protocol::Connection::CloseOk->new(
 		)
