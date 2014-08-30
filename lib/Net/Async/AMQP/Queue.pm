@@ -34,8 +34,6 @@ use Scalar::Util qw(weaken);
 
 use Net::Async::AMQP;
 
-use constant DEBUG => Net::Async::AMQP->DEBUG;
-
 =head1 ACCESSORS
 
 =cut
@@ -85,7 +83,7 @@ sub listen {
     # Attempt to bind after we've successfully declared the exchange.
     $self->future->then(sub {
         my $f = $self->loop->new_future;
-        warn "Attempting to listen for events on queue [" . $self->queue_name . "]\n" if DEBUG;
+        $self->debug_printf("Attempting to listen for events on queue [%s]", $self->queue_name);
 
         my $frame = Net::AMQP::Protocol::Basic::Consume->new(
             queue        => Net::AMQP::Value::String->new($self->queue_name),
@@ -146,7 +144,7 @@ sub cancel {
 
     # Attempt to bind after we've successfully declared the exchange.
 	$self->future->then(sub {
-		warn "Attempting to cancel consumer [" . $args{consumer_tag} . "]\n" if DEBUG;
+		$self->debug_printf("Attempting to cancel consumer [%s]", $args{consumer_tag});
 
 		my $frame = Net::AMQP::Protocol::Basic::Cancel->new(
 			consumer_tag => Net::AMQP::Value::String->new($args{consumer_tag}),
@@ -175,10 +173,9 @@ sub bind_exchange {
     # Attempt to bind after we've successfully declared the exchange.
     $self->future->then(sub {
         my $f = $self->loop->new_future;
-        warn "Attempting to bind our queue [" . $self->queue_name . "] to exchange [" . $args{exchange} . "]" if DEBUG;
+        $self->debug_printf("Binding queue [%s] to exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 
         my $frame = Net::AMQP::Frame::Method->new(
-#            channel => $self->channel->id,
             method_frame => Net::AMQP::Protocol::Queue::Bind->new(
                 queue       => Net::AMQP::Value::String->new($self->queue_name),
                 exchange    => Net::AMQP::Value::String->new($args{exchange}),
@@ -208,7 +205,7 @@ sub delete {
     # Attempt to bind after we've successfully declared the exchange.
     $self->future->then(sub {
         my $f = $self->loop->new_future;
-        warn "Attempting to delete queue [" . $self->queue_name . "]" if DEBUG;
+        $self->debug_printf("Deleting queue [%s]", $self->queue_name);
 
         my $frame = Net::AMQP::Frame::Method->new(
 #            channel => $self->channel->id,
