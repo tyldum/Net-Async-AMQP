@@ -72,7 +72,7 @@ channel once complete.
 sub confirm_mode {
     my $self = shift;
     my %args = @_;
-    warn "Attempting to switch to confirm mode\n" if DEBUG;
+    $self->debug_printf("Enabling confirm mode");
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
@@ -108,7 +108,7 @@ sub exchange_declare {
     die "No exchange specified" unless exists $args{exchange};
     die "No exchange type specified" unless exists $args{type};
 
-    warn "Attempting to declare our exchange: " . $args{exchange} if DEBUG;
+    $self->debug_printf("Declaring exchange [%s]", $args{exchange});
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
@@ -146,9 +146,7 @@ sub queue_declare {
     my %args = @_;
     die "No queue specified" unless defined $args{queue};
 
-    warn "queue dec start\n" if DEBUG;
     $self->future->then(sub {
-        warn "queue decl\n" if DEBUG;
         my $f = $self->loop->new_future;
         $self->add_child(
 			my $q = Net::Async::AMQP::Queue->new(
@@ -163,7 +161,7 @@ sub queue_declare {
 		# triggering cleanup logic as soon as that channel
 		# goes out of scope.
 		Scalar::Util::weaken($q->{channel});
-        warn "Attempting to declare our queue" if DEBUG;
+        $self->debug_printf("Declaring queue [%s]", $args{queue});
         my $frame = Net::AMQP::Frame::Method->new(
             method_frame => Net::AMQP::Protocol::Queue::Declare->new(
                 queue       => Net::AMQP::Value::String->new($args{queue}),
@@ -411,7 +409,7 @@ channel instance once the operation is complete.
 sub close {
     my $self = shift;
     my %args = @_;
-    warn "Closing channel " . $self->id . "\n" if DEBUG;
+    $self->debug_printf("Close channel %d", $self->id);
 
     my $f = $self->loop->new_future;
     my $frame = Net::AMQP::Frame::Method->new(
@@ -485,8 +483,6 @@ Returns $self.
 
 sub next_pending {
     my ($self, $frame) = @_;
-
-	# T'ain't a pending frame. Nil fucking desperandum, it may just be a message
 
     # First part of a frame. There's more to come, so stash a new future
     # and return.
@@ -563,7 +559,7 @@ sub next_pending {
 	# or consumer cancellation if the consumer_cancel_notify
 	# option is set (RabbitMQ). We don't expect many so report
 	# them when in debug mode.
-	warn "We had no pending handlers for $type";
+	$self->debug_printf("We had no pending handlers for [%s]", $type);
 	return undef;
 }
 
