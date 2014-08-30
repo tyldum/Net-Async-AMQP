@@ -86,17 +86,18 @@ sub on_listen {
 sub _add_to_loop {
 	my ($self, $loop) = @_;
 	$self->SUPER::_add_to_loop($loop);
-	$self->listen(
-		addr => {
-			family => 'inet',
-			socktype => 'stream',
-			port => $self->port,
-			ip => ($self->local_host // '0.0.0.0'),
-		},
-		on_listen => $self->curry::weak::on_listen,
-	)->then(sub {
-		$self->on_listen;
-	});
+	$self->adopt_future(
+		$self->listen(
+			addr => {
+				family => 'inet',
+				socktype => 'stream',
+				port => $self->port,
+				ip => ($self->local_host // '0.0.0.0'),
+			},
+		)->then(sub {
+			$self->on_listen;
+		})
+	)
 }
 
 sub on_accept {
