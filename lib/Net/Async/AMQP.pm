@@ -108,45 +108,6 @@ use constant HEARTBEAT_INTERVAL    => $ENV{PERL_AMQP_HEARTBEAT_INTERVAL} // 0;
 use Net::Async::AMQP::Channel;
 use Net::Async::AMQP::Queue;
 
-# Heartbeat support - the frame type isn't handled by the factory, but
-# there's a basic subclass in place so we just need to map the type_id here.
-# This is already supported in version 0.06 onwards.
-BEGIN {
-	if(Net::AMQP->VERSION < 0.06) {
-		my $factory = sub {
-			my ($class, %args) = @_;
-
-			unless (exists $args{type_id}) { die "Mandatory parameter 'type_id' missing in call to Net::AMQP::Frame::factory"; }
-			unless (exists $args{channel}) { die "Mandatory parameter 'channel' missing in call to Net::AMQP::Frame::factory"; }
-			unless (exists $args{payload}) { die "Mandatory parameter 'payload' missing in call to Net::AMQP::Frame::factory"; }
-			unless (keys %args == 3)       { die "Invalid parameter passed in call to Net::AMQP::Frame::factory"; }
-
-			my $subclass;
-			if ($args{type_id} == 1) {
-				$subclass = 'Method';
-			}
-			elsif ($args{type_id} == 2) {
-				$subclass = 'Header';
-			}
-			elsif ($args{type_id} == 3) {
-				$subclass = 'Body';
-			} elsif ($args{type_id} == 8) {
-				$subclass = 'Heartbeat';
-			}
-			else {
-				die "Unknown type_id $args{type_id}";
-			}
-
-			$subclass = 'Net::AMQP::Frame::' . $subclass;
-			my $object = bless \%args, $subclass;
-			$object->parse_payload();
-			return $object;
-		};
-		{ no strict 'refs'; no warnings 'redefine'; *{'Net::AMQP::Frame::factory'} = $factory; }
-	}
-
-}
-
 =head1 PACKAGE VARIABLES
 
 =head2 $XML_SPEC
