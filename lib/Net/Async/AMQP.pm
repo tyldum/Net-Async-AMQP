@@ -120,6 +120,13 @@ Defaults to an extended version of the 0.9.1 protocol as used by RabbitMQ,
 this is found in the C<amqp0-9-1.extended.xml> distribution sharedir (see
 L<File::ShareDir>).
 
+Normally, you should be able to ignore this. If you want to load an alternative
+spec, note that (a) this is global, rather than per-instance, (b) it needs to
+be set before you C<use> this module.
+
+ BEGIN { $Net::Async::AMQP::XML_SPEC = '/tmp/amqp.xml' }
+ use Net::Async::AMQP;
+
 =cut
 
 our $XML_SPEC;
@@ -179,7 +186,7 @@ sub configure {
 
 =head2 bus
 
-Event bus. Used for sharing global events.
+Event bus. Used for sharing global events such as connection closure.
 
 =cut
 
@@ -652,10 +659,9 @@ Returns $self.
 =cut
 
 sub next_pending {
-    my $self = shift;
-    my $type = shift;
-    my $frame = shift;
-    warn "Check next pending for $type\n" if DEBUG;
+    my ($self, $type, $frame) = @_;
+    $self->debug_printf("Check next pending for %s", $type);
+
     if(my $next = shift @{$self->{pending}{$type} || []}) {
 		# We have a registered handler for this frame type. This usually
 		# means that we've sent a message and are awaiting a response.
