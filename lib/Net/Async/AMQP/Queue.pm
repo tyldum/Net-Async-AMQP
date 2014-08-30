@@ -208,7 +208,6 @@ sub delete {
         $self->debug_printf("Deleting queue [%s]", $self->queue_name);
 
         my $frame = Net::AMQP::Frame::Method->new(
-#            channel => $self->channel->id,
             method_frame => Net::AMQP::Protocol::Queue::Delete->new(
                 queue       => Net::AMQP::Value::String->new($self->queue_name),
                 nowait      => 0,
