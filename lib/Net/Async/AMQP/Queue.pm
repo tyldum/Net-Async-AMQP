@@ -30,7 +30,6 @@ Net::Async::AMQP - provides client interface to AMQP using L<IO::Async>
 use Future;
 use curry::weak;
 use Class::ISA ();
-use Data::Dumper;
 use Scalar::Util qw(weaken);
 
 use Net::Async::AMQP;
