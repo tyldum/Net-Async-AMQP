@@ -1121,7 +1121,7 @@ specification into appropriate Perl methods and classes.
 
 =head1 AUTHOR
 
-Tom Molesworth <cpan@entitymodel.com>
+Tom Molesworth <cpan@perlsite.co.uk>
 
 =head1 LICENSE
 
