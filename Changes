@@ -1,6 +1,10 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* No longer attempts to call ->frame_method on heartbeat frames
 
 0.008     2014-08-30 00:33:42+01:00 Europe/London
 	New features:
