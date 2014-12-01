@@ -18,7 +18,7 @@ use Net::Async::AMQP::Server::Connection;
 
 Set up the instance.
 
-Takes teh following named parameters:
+Takes the following named parameters:
 
 =over 4
 

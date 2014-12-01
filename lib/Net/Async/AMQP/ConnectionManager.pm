@@ -58,7 +58,7 @@ use Net::Async::AMQP::ConnectionManager::Connection;
 =head2 Channel management
 
 Each connection has N total available channels, recorded in a hash. The total number
-of channels per connection is negotiated via the intial AMQP Tune/TuneOk sequence on
+of channels per connection is negotiated via the initial AMQP Tune/TuneOk sequence on
 connection.
 
 We also maintain lists:
