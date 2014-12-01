@@ -130,6 +130,7 @@ be set before you C<use> this module.
 =cut
 
 our $XML_SPEC;
+our $SPEC_LOADED;
 BEGIN {
 	$XML_SPEC //= File::ShareDir::dist_file(
 		'Net-Async-AMQP',
@@ -138,7 +139,7 @@ BEGIN {
 
 	# Load the appropriate protocol definitions. RabbitMQ uses a
 	# modified version of AMQP 0.9.1
-	Net::AMQP::Protocol->load_xml_spec($XML_SPEC);
+	Net::AMQP::Protocol->load_xml_spec($XML_SPEC) unless $SPEC_LOADED++;
 }
 
 =head1 %CONNECTION_DEFAULTS
