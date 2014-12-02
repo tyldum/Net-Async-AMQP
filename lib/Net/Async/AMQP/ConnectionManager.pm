@@ -318,6 +318,7 @@ sub connect {
 	$self->add_child(
 		my $amqp = Net::Async::AMQP->new
 	);
+	$amqp->configure(heartbeat_interval => delete $args{heartbeat}) if exists $args{heartbeat};
 	$args{port} ||= 5672;
 	$amqp->connect(
 		%args
