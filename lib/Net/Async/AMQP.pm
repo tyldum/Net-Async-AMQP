@@ -875,6 +875,8 @@ my %types;
 sub get_frame_type {
     my ($self, $raw_frame) = @_;
 	return 'Heartbeat' if $raw_frame->isa('Net::AMQP::Frame::Heartbeat');
+	return 'Header' if $raw_frame->isa('Net::AMQP::Frame::Header');
+	return 'Body' if $raw_frame->isa('Net::AMQP::Frame::Body');
 
     my $frame = $raw_frame->method_frame;
     my $ref = ref $frame;
