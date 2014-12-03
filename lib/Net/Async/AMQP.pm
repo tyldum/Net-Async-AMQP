@@ -907,11 +907,10 @@ Returns $self.
 
 sub process_frame {
     my ($self, $frame) = @_;
+    my $frame_type = $self->get_frame_type($frame);
 	if(my $ch = $self->channel_by_id($frame->channel)) {
 		return $self if $ch->next_pending($frame);
 	}
-
-    my $frame_type = $self->get_frame_type($frame);
 
 	# Basic::Deliver - we're delivering a message to a ctag
 	# Frame::Header - header part of message
