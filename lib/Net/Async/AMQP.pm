@@ -383,6 +383,7 @@ Sends the heartbeat frame.
 
 sub send_heartbeat {
     my $self = shift;
+	$self->debug_printf("Sending heartbeat frame");
 
     # Heartbeat messages apply to the connection rather than
     # individual channels, so we use channel 0 to represent this
@@ -909,8 +910,10 @@ sub process_frame {
     my ($self, $frame) = @_;
     my $frame_type = $self->get_frame_type($frame);
 	if(my $ch = $self->channel_by_id($frame->channel)) {
+		$self->debug_printf("Processing frame %s on channel %d", $frame_type, $ch);
 		return $self if $ch->next_pending($frame);
 	}
+	$self->debug_printf("Processing connection frame %s", $frame_type);
 
 	# Basic::Deliver - we're delivering a message to a ctag
 	# Frame::Header - header part of message
