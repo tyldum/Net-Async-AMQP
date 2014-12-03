@@ -390,6 +390,12 @@ sub send_heartbeat {
         Net::AMQP::Frame::Heartbeat->new,
         channel => 0,
     );
+
+	# Ensure heartbeat timer is active for next time
+	if(my $timer = $self->heartbeat_timer) {
+		$timer->reset;
+		$timer->start;
+	}
 }
 
 =head2 post_connect
