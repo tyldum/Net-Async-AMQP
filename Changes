@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.010     2014-12-02 10:14:25+00:00 Europe/London
 	New features:
 	* Support for passing heartbeat as a server parameter when calling
 	->add() on a Net::Async::AMQP::ConnectionManager.
