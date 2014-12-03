@@ -1,6 +1,21 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	New features:
+	* Pass Basic.CancelOk notifications through as a cancel event:
+	 $ch->bus->subscribe_to_event(cancel => sub { my ($ev, $ctag) = @_; warn "cancel ctag $ctag" });
+	Needs the client property set for RabbitMQ to start sending these
+	messages - http://www.rabbitmq.com/consumer-cancel.html:
+     client_properties => {
+      capabilities => {
+       consumer_cancel_notify => Net::AMQP::Value->true,
+	  }
+	 }
+	in ->connect() or ConnectionManager->add()
+
+	Bugs fixed:
+	* Header and body frame type detection fixed
+	* Outgoing heartbeat timer reset on expiry
 
 0.010     2014-12-02 10:14:25+00:00 Europe/London
 	New features:
