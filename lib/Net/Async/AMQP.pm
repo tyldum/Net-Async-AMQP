@@ -278,7 +278,7 @@ sub on_stream {
     $stream->configure(
         on_read => $self->curry::on_read,
     );
-    $self->loop->add($stream);
+    $self->add($stream);
     $self->apply_heartbeat_timer if $self->heartbeat_interval;
     $self->post_connect(%$args);
     return;
@@ -359,7 +359,7 @@ sub apply_heartbeat_timer {
 			delay     => $self->missed_heartbeats_allowed * $self->heartbeat_interval,
 			on_expire => $self->curry::weak::handle_heartbeat_failure,
 		);
-		$self->loop->add($timer);
+		$self->add($timer);
 		$timer->start;
 		Scalar::Util::weaken($self->{heartbeat_receive_timer} = $timer);
     $self
