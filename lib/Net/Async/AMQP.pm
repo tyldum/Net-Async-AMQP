@@ -737,9 +737,29 @@ for completeness but should not normally be needed outside this library.
 
 =cut
 
+=head2 heartbeat_interval
+
+Current maximum interval between frames.
+
+=cut
+
 sub heartbeat_interval { shift->{heartbeat_interval} //= HEARTBEAT_INTERVAL }
 
+=head2 missed_heartbeats_allowed
+
+How many times we allow the remote to miss the frame-sending deadline in a row
+before we give up and close the connection. Defined by the protocol, should be
+3x heartbeats.
+
+=cut
+
 sub missed_heartbeats_allowed { 3 }
+
+=head2 apply_heartbeat_timer
+
+Enable both heartbeat timers.
+
+=cut
 
 sub apply_heartbeat_timer {
     my $self = shift;
@@ -764,16 +784,45 @@ sub apply_heartbeat_timer {
     $self
 }
 
+=head2 reset_heartbeat
+
+Resets our side of the heartbeat timer.
+
+This is used to ensure we send data at least once every L</heartbeat_interval>
+seconds.
+
+=cut
+
+sub reset_heartbeat {
+    my $self = shift;
+    return unless my $timer = $self->heartbeat_send_timer;
+
+    $timer->reset;
+}
+
+
+=head2 heartbeat_receive_timer
+
+Timer for tracking frames we've received.
+
+=cut
+
 sub heartbeat_receive_timer { shift->{heartbeat_receive_timer} }
+
+=head2 heartbeat_send_timer
+
+Timer for tracking when we're due to send out something.
+
+=cut
 
 sub heartbeat_send_timer { shift->{heartbeat_send_timer} }
 
 =head2 handle_heartbeat_failure
 
 Called when heartbeats are enabled and we've had no response from the server for 3 heartbeat
-intervals. We'd expect some frame from the remote - even if just a heartbeat frame - at least
-once every heartbeat interval so if this triggers then we're likely dealing with a dead or
-heavily loaded server.
+intervals (see L</missed_heartbeats_allowed>). We'd expect some frame from the remote - even
+if just a heartbeat frame - at least once every heartbeat interval so if this triggers then
+we're likely dealing with a dead or heavily loaded server.
 
 This will invoke the L</heartbeat_failure event> then close the connection.
 
