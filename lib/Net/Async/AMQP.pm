@@ -61,7 +61,8 @@ use constant AUTH_MECH             => 'AMQPLAIN';
 
 =head2 PAYLOAD_HEADER_LENGTH
 
-Length of header used in payload messages. Defined by the AMQP standard.
+Length of header used in payload messages. Defined by the AMQP standard
+as 8 bytes.
 
 =cut
 
@@ -126,6 +127,8 @@ be set before you C<use> this module.
 
  BEGIN { $Net::Async::AMQP::XML_SPEC = '/tmp/amqp.xml' }
  use Net::Async::AMQP;
+
+Once loaded, this module will not attempt to apply the spec again.
 
 =cut
 
