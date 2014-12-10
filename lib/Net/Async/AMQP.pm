@@ -362,6 +362,7 @@ sub apply_heartbeat_timer {
 		$self->add($timer);
 		$timer->start;
 		Scalar::Util::weaken($self->{heartbeat_receive_timer} = $timer);
+	}
     $self
 }
 
