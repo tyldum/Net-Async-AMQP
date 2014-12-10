@@ -339,79 +339,6 @@ sub on_closed {
 	$self->bus->invoke_event(close => $reason)
 }
 
-sub heartbeat_interval { shift->{heartbeat_interval} //= HEARTBEAT_INTERVAL }
-
-sub missed_heartbeats_allowed { 3 }
-
-sub apply_heartbeat_timer {
-    my $self = shift;
-	{ # On expiry, will trigger a heartbeat send from us to the server
-		my $timer = IO::Async::Timer::Countdown->new(
-			delay     => $self->heartbeat_interval,
-			on_expire => $self->curry::weak::send_heartbeat,
-		);
-		$self->add($timer);
-		$timer->start;
-		Scalar::Util::weaken($self->{heartbeat_send_timer} = $timer);
-	}
-	{ # This timer indicates no traffic from the remote for 3*heartbeat
-		my $timer = IO::Async::Timer::Countdown->new(
-			delay     => $self->missed_heartbeats_allowed * $self->heartbeat_interval,
-			on_expire => $self->curry::weak::handle_heartbeat_failure,
-		);
-		$self->add($timer);
-		$timer->start;
-		Scalar::Util::weaken($self->{heartbeat_receive_timer} = $timer);
-	}
-    $self
-}
-
-sub heartbeat_receive_timer { shift->{heartbeat_receive_timer} }
-sub heartbeat_send_timer { shift->{heartbeat_send_timer} }
-
-=head2 handle_heartbeat_failure
-
-Called when heartbeats are enabled and we've had no response from the server for 3 heartbeat
-intervals. We'd expect some frame from the remote - even if just a heartbeat frame - at least
-once every heartbeat interval so if this triggers then we're likely dealing with a dead or
-heavily loaded server.
-
-This will invoke the L</heartbeat_failure event> then close the connection.
-
-=cut
-
-sub handle_heartbeat_failure {
-	my $self = shift;
-	$self->debug_printf("Heartbeat timeout: no data received from server since %s, closing connection", $self->last_frame_time);
-	$self->heartbeat_send_timer->stop if $self->heartbeat_send_timer;
-	$self->bus->invoke_event(heartbeat_failure => $self->last_frame_time);
-	$self->close;
-}
-
-=head2 send_heartbeat
-
-Sends the heartbeat frame.
-
-=cut
-
-sub send_heartbeat {
-    my $self = shift;
-	$self->debug_printf("Sending heartbeat frame");
-
-    # Heartbeat messages apply to the connection rather than
-    # individual channels, so we use channel 0 to represent this
-    $self->send_frame(
-        Net::AMQP::Frame::Heartbeat->new,
-        channel => 0,
-    );
-
-	# Ensure heartbeat timer is active for next time
-	if(my $timer = $self->heartbeat_send_timer) {
-		$timer->reset;
-		$timer->start;
-	}
-}
-
 =head2 post_connect
 
 Sends initial startup header and applies listener for the Connection::Start message.
@@ -805,6 +732,82 @@ sub incoming_message { shift->{incoming_message} }
 
 The following methods are intended for internal use. They are documented
 for completeness but should not normally be needed outside this library.
+
+=cut
+
+sub heartbeat_interval { shift->{heartbeat_interval} //= HEARTBEAT_INTERVAL }
+
+sub missed_heartbeats_allowed { 3 }
+
+sub apply_heartbeat_timer {
+    my $self = shift;
+	{ # On expiry, will trigger a heartbeat send from us to the server
+		my $timer = IO::Async::Timer::Countdown->new(
+			delay     => $self->heartbeat_interval,
+			on_expire => $self->curry::weak::send_heartbeat,
+		);
+		$self->add($timer);
+		$timer->start;
+		Scalar::Util::weaken($self->{heartbeat_send_timer} = $timer);
+	}
+	{ # This timer indicates no traffic from the remote for 3*heartbeat
+		my $timer = IO::Async::Timer::Countdown->new(
+			delay     => $self->missed_heartbeats_allowed * $self->heartbeat_interval,
+			on_expire => $self->curry::weak::handle_heartbeat_failure,
+		);
+		$self->add($timer);
+		$timer->start;
+		Scalar::Util::weaken($self->{heartbeat_receive_timer} = $timer);
+	}
+    $self
+}
+
+sub heartbeat_receive_timer { shift->{heartbeat_receive_timer} }
+
+sub heartbeat_send_timer { shift->{heartbeat_send_timer} }
+
+=head2 handle_heartbeat_failure
+
+Called when heartbeats are enabled and we've had no response from the server for 3 heartbeat
+intervals. We'd expect some frame from the remote - even if just a heartbeat frame - at least
+once every heartbeat interval so if this triggers then we're likely dealing with a dead or
+heavily loaded server.
+
+This will invoke the L</heartbeat_failure event> then close the connection.
+
+=cut
+
+sub handle_heartbeat_failure {
+	my $self = shift;
+	$self->debug_printf("Heartbeat timeout: no data received from server since %s, closing connection", $self->last_frame_time);
+	$self->heartbeat_send_timer->stop if $self->heartbeat_send_timer;
+	$self->bus->invoke_event(heartbeat_failure => $self->last_frame_time);
+	$self->close;
+}
+
+=head2 send_heartbeat
+
+Sends the heartbeat frame.
+
+=cut
+
+sub send_heartbeat {
+    my $self = shift;
+	$self->debug_printf("Sending heartbeat frame");
+
+    # Heartbeat messages apply to the connection rather than
+    # individual channels, so we use channel 0 to represent this
+    $self->send_frame(
+        Net::AMQP::Frame::Heartbeat->new,
+        channel => 0,
+    );
+
+	# Ensure heartbeat timer is active for next time
+	if(my $timer = $self->heartbeat_send_timer) {
+		$timer->reset;
+		$timer->start;
+	}
+}
 
 =head2 push_pending
 
