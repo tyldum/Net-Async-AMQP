@@ -1002,24 +1002,8 @@ sub process_frame {
 		$self->debug_printf("Processing frame %s on channel %d", $frame_type, $ch);
 		return $self if $ch->next_pending($frame);
 	}
+
 	$self->debug_printf("Processing connection frame %s", $frame_type);
-
-	# Basic::Deliver - we're delivering a message to a ctag
-	# Frame::Header - header part of message
-	# Frame::Body* - body content
-	} else {
-		$self->debug_printf("Processing connection frame %s => %s", $self, $frame);
-	}
-	return $self;
-
-    # Any channel errors will be represented as a channel close event
-    if($frame_type eq 'Channel::Close') {
-        $self->debug_printf("Channel was %d, calling close", $frame->channel);
-        $self->channel_by_id($frame->channel)->on_close(
-            $frame->method_frame
-        );
-        return $self;
-    }
 
 	$self->next_pending($frame_type, $frame);
 
