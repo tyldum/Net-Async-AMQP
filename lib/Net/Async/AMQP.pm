@@ -831,8 +831,10 @@ This will invoke the L</heartbeat_failure event> then close the connection.
 sub handle_heartbeat_failure {
 	my $self = shift;
 	$self->debug_printf("Heartbeat timeout: no data received from server since %s, closing connection", $self->last_frame_time);
-	$self->heartbeat_send_timer->stop if $self->heartbeat_send_timer;
-	$self->bus->invoke_event(heartbeat_failure => $self->last_frame_time);
+
+	$self->bus->invoke_event(
+		heartbeat_failure => $self->last_frame_time
+	);
 	$self->close;
 }
 
@@ -1108,22 +1110,6 @@ sub send_frame {
 }
 
 sub header_bytes { "AMQP\x00\x00\x09\x01" }
-
-=head2 reset_heartbeat
-
-Resets our side of the heartbeat timer.
-
-This is used to ensure we send data at least once every L</heartbeat_interval>
-seconds.
-
-=cut
-
-sub reset_heartbeat {
-    my $self = shift;
-    return unless my $timer = $self->heartbeat_send_timer;
-
-    $timer->reset;
-}
 
 sub _add_to_loop {
 	my ($self, $loop) = @_;
