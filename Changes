@@ -1,6 +1,13 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	Bugs fixed:
+	* Heartbeat handling overhaul - the send/receive heartbeat timers are independent,
+	so we can now pick up heartbeat failure when we're not actively sending.
+
+	Internal changes:
+	* Timers and stream are now children of the top-level Net::Async::AMQP object
+	rather than attached directly to the loop
 
 0.011     2014-12-03 13:20:39+00:00 Europe/London
 	New features:
