@@ -979,8 +979,24 @@ Returns $self.
 
 sub process_frame {
     my ($self, $frame) = @_;
+
     my $frame_type = $self->get_frame_type($frame);
-	if(my $ch = $self->channel_by_id($frame->channel)) {
+
+	if($frame_type eq 'Heartbeat') {
+		# Ignore these completely. Since we have the last frame update at the data-read
+		# level, there's nothing for us to do here.
+		$self->debug_printf("Heartbeat received");
+
+		# A peer that receives an invalid heartbeat frame MUST raise a connection
+		# exception with reply code 501 (frame error)
+		$self->send_frame(
+			Net::AMQP::Protocol::Connection::Close->new(
+				reply_code => 501,
+				reply_text => 'Frame error - heartbeat should have channel 0'
+			)
+		) if $frame->channel;
+		return $self;
+	} elsif(my $ch = $self->channel_by_id($frame->channel)) {
 		$self->debug_printf("Processing frame %s on channel %d", $frame_type, $ch);
 		return $self if $ch->next_pending($frame);
 	}
