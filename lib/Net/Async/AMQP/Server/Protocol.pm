@@ -188,11 +188,33 @@ sub tune_ok {
 	$self->debug_printf("Channels:  " . $method_frame->channel_max);
 	$self->debug_printf("Max size:  " . $method_frame->frame_max);
 	$self->debug_printf("Heartbeat: " . $method_frame->heartbeat);
+    $self->push_pending(
+        'Channel::Open' => $self->can('channel_open'),
+	);
 	$self->send_frame(
 		Net::AMQP::Protocol::Connection::OpenOk->new(
 			reserved_1 => '',
 		)
 	);
+}
+
+sub channel_open {
+	my ($self, $frame) = @_;
+    $self->push_pending(
+        'Channel::Open' => $self->can('channel_open'),
+	);
+	my $method_frame = $frame->method_frame;
+	my $id = $frame->channel;
+	$self->debug_printf("Channel [%d] open request", $id);
+	if(exists $self->{channels}{$id}) {
+		$self->debug_printf("Channel [%d] already assigned, rejecting", $id);
+		$self->send_frame(
+			Net::AMQP::Protocol::Channel->new(
+				reserved_1 => '',
+			)
+		);
+
+	}
 }
 
 =head2 get_frame_type

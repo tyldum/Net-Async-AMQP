@@ -39,6 +39,7 @@ ok($cli->connect(
 		},
 	},
 )->get, 'connect to server');
-$cli->close->get;
+ok($cli->open_channel->get, 'open channel');
+ok($cli->close->get, 'close connection again');
 done_testing;
 
