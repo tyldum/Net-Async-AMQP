@@ -540,6 +540,8 @@ sub close {
     my $self = shift;
     my %args = @_;
 
+	$self->heartbeat_send_timer->stop if $self->heartbeat_send_timer;
+
     my $f = $self->loop->new_future;
 
 	# We might end up with a connection shutdown rather
