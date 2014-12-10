@@ -1005,13 +1005,8 @@ sub process_frame {
 	# Basic::Deliver - we're delivering a message to a ctag
 	# Frame::Header - header part of message
 	# Frame::Body* - body content
-	if($frame_type eq 'Heartbeat') {
-		# Ignore these completely. Since we have the last frame update at the data-read
-		# level, there's nothing for us to do here.
-		$self->debug_printf("Heartbeat received");
 	} else {
 		$self->debug_printf("Processing connection frame %s => %s", $self, $frame);
-		$self->next_pending($frame_type, $frame);
 	}
 	return $self;
 
@@ -1024,6 +1019,7 @@ sub process_frame {
         return $self;
     }
 
+	$self->next_pending($frame_type, $frame);
 
     return $self;
 }
