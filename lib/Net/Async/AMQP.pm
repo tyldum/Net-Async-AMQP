@@ -341,20 +341,32 @@ sub on_closed {
 
 sub heartbeat_interval { shift->{heartbeat_interval} //= HEARTBEAT_INTERVAL }
 
+sub missed_heartbeats_allowed { 3 }
+
 sub apply_heartbeat_timer {
     my $self = shift;
-	# IO::Async::Timer::Countdown
-    my $timer = IO::Async::Timer::Countdown->new(
-        delay     => $self->heartbeat_interval,
-        on_expire => $self->curry::weak::send_heartbeat,
-    );
-    $self->loop->add($timer);
-    $timer->start;
-    Scalar::Util::weaken($self->{heartbeat_timer} = $timer);
+	{ # On expiry, will trigger a heartbeat send from us to the server
+		my $timer = IO::Async::Timer::Countdown->new(
+			delay     => $self->heartbeat_interval,
+			on_expire => $self->curry::weak::send_heartbeat,
+		);
+		$self->add($timer);
+		$timer->start;
+		Scalar::Util::weaken($self->{heartbeat_send_timer} = $timer);
+	}
+	{ # This timer indicates no traffic from the remote for 3*heartbeat
+		my $timer = IO::Async::Timer::Countdown->new(
+			delay     => $self->missed_heartbeats_allowed * $self->heartbeat_interval,
+			on_expire => $self->curry::weak::handle_heartbeat_failure,
+		);
+		$self->loop->add($timer);
+		$timer->start;
+		Scalar::Util::weaken($self->{heartbeat_receive_timer} = $timer);
     $self
 }
 
-sub heartbeat_timer { shift->{heartbeat_timer} }
+sub heartbeat_receive_timer { shift->{heartbeat_receive_timer} }
+sub heartbeat_send_timer { shift->{heartbeat_send_timer} }
 
 =head2 handle_heartbeat_failure
 
@@ -370,7 +382,7 @@ This will invoke the L</heartbeat_failure event> then close the connection.
 sub handle_heartbeat_failure {
 	my $self = shift;
 	$self->debug_printf("Heartbeat timeout: no data received from server since %s, closing connection", $self->last_frame_time);
-	$self->heartbeat_timer->stop if $self->heartbeat_timer;
+	$self->heartbeat_send_timer->stop if $self->heartbeat_send_timer;
 	$self->bus->invoke_event(heartbeat_failure => $self->last_frame_time);
 	$self->close;
 }
@@ -393,7 +405,7 @@ sub send_heartbeat {
     );
 
 	# Ensure heartbeat timer is active for next time
-	if(my $timer = $self->heartbeat_timer) {
+	if(my $timer = $self->heartbeat_send_timer) {
 		$timer->reset;
 		$timer->start;
 	}
@@ -767,6 +779,7 @@ sub last_frame_time {
     return $self->{last_frame_time} unless @_;
 
     $self->{last_frame_time} = shift;
+	$self->heartbeat_receive_timer->reset if $self->heartbeat_receive_timer;
     $self
 }
 
@@ -1035,7 +1048,7 @@ sub send_frame {
 
 #    warn "Sending data: " . Dumper($frame) . "\n";
     $self->write($data);
-	$self->reset_heartbeat if $self->heartbeat_timer;
+	$self->reset_heartbeat;
     $self;
 }
 
@@ -1052,11 +1065,7 @@ seconds.
 
 sub reset_heartbeat {
     my $self = shift;
-    return unless my $timer = $self->heartbeat_timer;
-
-	if(($self->loop->time - $self->last_frame_time) > 3 * $self->heartbeat_interval) {
-		return $self->handle_heartbeat_failure;
-	}
+    return unless my $timer = $self->heartbeat_send_timer;
 
     $timer->reset;
 }
