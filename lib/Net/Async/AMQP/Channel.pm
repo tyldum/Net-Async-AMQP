@@ -548,18 +548,6 @@ sub next_pending {
 		);
 	}
 
-    if(my $next = shift @{$self->{pending}{$type} || []}) {
-		# We have a registered handler for this frame type. This usually
-		# means that we've sent a message and are awaiting a response.
-		if(ref($next) eq 'ARRAY') {
-			my ($f, @args) = @$next;
-			$f->done(@args) unless $f->is_ready;
-		} else {
-			$next->($self, $frame, @_);
-		}
-		return $self;
-	}
-
 	# Message delivery, part 3: The "Deliver" message.
 	# This is actually where we start.
     if($type eq 'Basic::Deliver') {
@@ -580,13 +568,22 @@ sub next_pending {
         return $self;
     }
 
+    if(my $next = shift @{$self->{pending}{$type} || []}) {
+		# We have a registered handler for this frame type. This usually
+		# means that we've sent a message and are awaiting a response.
+		if(ref($next) eq 'ARRAY') {
+			my ($f, @args) = @$next;
+			$f->done(@args) unless $f->is_ready;
+		} else {
+			$next->($self, $frame, @_);
+		}
+		return $self;
+	}
+
 	# It's quite possible we'll see unsolicited frames back from
-	# the server: these will typically be errors, connection close,
-	# or consumer cancellation if the consumer_cancel_notify
-	# option is set (RabbitMQ). We don't expect many so report
-	# them when in debug mode.
+	# the server. We don't expect many so report them when in debug mode.
 	$self->debug_printf("We had no pending handlers for [%s]", $type);
-	return undef;
+	return $self;
 }
 
 =head1 METHODS - Accessors
