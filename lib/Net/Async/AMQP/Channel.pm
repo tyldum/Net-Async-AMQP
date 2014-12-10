@@ -13,16 +13,31 @@ Net::Async::AMQP::Channel - represents a single channel in an MQ connection
 
  use IO::Async::Loop;
  use Net::Async::AMQP;
- my $amqp = Net::Async::AMQP->new(loop => my $loop = IO::Async::Loop->new);
+ my $loop = IO::Async::Loop->new;
+ $loop->add(my $amqp = Net::Async::AMQP->new);
  $amqp->connect(
    host => 'localhost',
    username => 'guest',
    password => 'guest',
-   on_connected => sub {
-   }
- );
+ )->then(sub {
+  shift->open_channel->publish(
+   type => 'application/json'
+  )
+ });
 
 =head1 DESCRIPTION
+
+Each Net::Async::AMQP::Channel instance represents a virtual channel for
+communicating with the MQ server.
+
+Channels are layered over the TCP protocol and most of the common AMQP frames
+operate at channel level - typically you'd connect to the server, open one
+channel for one-shot requests such as binding/declaring/publishing, and a further
+channel for every consumer.
+
+Since any error typically results in a closed channel, it's not recommended to
+have multiple consumers on the same channel if there's any chance the Basic.Consume
+request will fail.
 
 =cut
 
@@ -61,6 +76,11 @@ sub configure {
 Switches confirmation mode on for this channel.
 In confirm mode, all messages must be ACKed
 explicitly after delivery.
+
+Note that this is an irreversible operation - once
+confirm mode has been enabled on a channel, closing that
+channel and reopening is the only way to turn off confirm
+mode again.
 
 Returns a L<Future> which will resolve with this
 channel once complete.
@@ -471,8 +491,6 @@ Takes the following parameters:
 
 =over 4
 
-=item * $type - the frame type, such as 'Basic::ConnectOk'
-
 =item * $frame - the frame itself
 
 =back
@@ -637,5 +655,9 @@ Tom Molesworth <cpan@perlsite.co.uk>
 
 =head1 LICENSE
 
-Licensed under the same terms as Perl itself.
+Licensed under the same terms as Perl itself, with additional licensing
+terms for the MQ spec to be found in C<share/amqp0-9-1.extended.xml>
+('a worldwide, perpetual, royalty-free, nontransferable, nonexclusive
+license to (i) copy, display, distribute and implement the Advanced
+Messaging Queue Protocol ("AMQP") Specification').
 
