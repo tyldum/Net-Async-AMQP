@@ -249,21 +249,19 @@ sub connect {
 
     # One-shot event on connection
     $self->bus->subscribe_to_event(connected => $connected = sub {
-        my $ev = shift;
 		$f->done($self) unless $f->is_ready;
     });
 	# Also pick up connection termination
     $self->bus->subscribe_to_event(close => $close = sub {
-        my $ev = shift;
 		$f->fail('Remote closed connection') unless $f->is_ready;
     });
 
     $loop->connect(
-        host     => $args{host},
+        host     => $self->{host},
         # local_host can be used to send from a different source address,
         # sometimes useful for routing purposes
         (exists $args{local_host} ? (local_host => $args{local_host}) : ()),
-        service  => $args{port},
+        service  => $self->{port},
         socktype => 'stream',
 
         on_stream => $self->curry::on_stream(\%args),
