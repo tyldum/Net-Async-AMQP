@@ -990,9 +990,11 @@ sub process_frame {
 		# A peer that receives an invalid heartbeat frame MUST raise a connection
 		# exception with reply code 501 (frame error)
 		$self->send_frame(
-			Net::AMQP::Protocol::Connection::Close->new(
-				reply_code => 501,
-				reply_text => 'Frame error - heartbeat should have channel 0'
+			Net::AMQP::Frame::Method->new(
+				method_frame => Net::AMQP::Protocol::Connection::Close->new(
+					reply_code => 501,
+					reply_text => 'Frame error - heartbeat should have channel 0'
+				)
 			)
 		) if $frame->channel;
 		return $self;
