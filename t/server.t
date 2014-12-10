@@ -26,7 +26,6 @@ $cli->bus->subscribe_to_event(
 );
 
 my $true = Net::AMQP::Value->true;
-
 $cli->connect(
 	host  => $host,
 	port  => $port,
