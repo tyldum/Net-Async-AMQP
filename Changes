@@ -6,7 +6,12 @@ Revision history for {{$dist->name}}
 	Bugs fixed:
 	* Heartbeat handling overhaul - the send/receive heartbeat timers are independent,
 	so we can now pick up heartbeat failure when we're not actively sending.
-	* Fixes for channel/connection close handling.
+	* Fixes for channel/connection close handling - all Futures representing channel activities
+	will now be marked as failed on channel closure
+	* Default values for user+password (guest/guest) are now applied - this avoids the following
+	RabbitMQ error:
+	 "AMQPLAIN auth info [{<<76,79,71,73,78>>,void,undefined},{<<80,65,83,83,87,79,82,68>>,void,undefined}]
+	 is missing LOGIN or PASSWORD field"
 
 	Internal changes:
 	* Timers and stream are now children of the top-level Net::Async::AMQP object
