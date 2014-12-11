@@ -40,7 +40,7 @@ $loop->add(IO::Async::Timer::Periodic->new(
 )->start);
 my $true = (Net::AMQP->VERSION >= 0.06) ? Net::AMQP::Value->true : 1;
 my %mq;
-my @hosts = @{ delete($args{localhost}) || [qw(localhost)] };,
+my @hosts = @{ delete($args{host}) || [qw(localhost)] };,
 my $parallel = delete $args{parallel} || 128;
 (fmap0 {
 	++$stats{active};
