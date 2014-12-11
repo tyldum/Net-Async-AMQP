@@ -198,7 +198,7 @@ Deletes this queue.
 
 =cut
 
-sub delete {
+sub delete : method {
     my $self = shift;
     my %args = @_;
 
