@@ -483,6 +483,7 @@ manually specified a channel anywhere, so don't do that.
 
 sub next_channel {
     my $self = shift;
+	$self->{channel} //= 0;
 	return undef if $self->{channel} >= $self->channel_max;
     ++$self->{channel}
 }
