@@ -590,11 +590,16 @@ sub close {
     return $f;
 }
 
+=head2 channel_closed
+
+=cut
+
 sub channel_closed {
     my ($self, $id) = @_;
-	my $ch = delete $self->{channel_map}{$id}
+	my $f = delete $self->{channel_map}{$id}
 		or die "Had a close indication for channel $id but this channel is unknown";
-    delete $self->{channel_by_id}{$ch};
+	$f->cancel unless $f->is_ready;
+    delete $self->{channel_by_id}{$id};
     $self
 }
 
