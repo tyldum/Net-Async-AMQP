@@ -531,12 +531,8 @@ sub open_channel {
     $c->push_pending(
         'Channel::OpenOk' => sub {
             my ($c, $frame) = @_;
-            {
-                my $method_frame = $frame->method_frame;
-                $self->{channel_map}{$frame->channel} = $c;
-                $f->done($c) unless $f->is_ready;
-            }
-            weaken $f;
+			my $f = $self->{channel_map}{$frame->channel};
+			$f->done($c) unless $f->is_ready;
         }
     );
     $self->send_frame($frame);
