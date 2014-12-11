@@ -122,9 +122,28 @@ sub listen {
                 $f->done($self => $ctag) unless $f->is_ready;
             })
         );
+		$self->closure_protection($f);
         $self->send_frame($frame);
         $f;
     });
+}
+
+sub closure_protection {
+	my ($self, $f) = @_;
+	my @ev;
+	my $bus = $self->channel->bus;
+	$f->on_ready(sub {
+		$bus->unsubscribe_from_event(@ev);
+		@ev = ();
+	});
+	$bus->subscribe_to_event(
+		@ev = (close => sub {
+			my ($ev, @args) = @_;
+			warn "Closed channel - @args\n";
+			$f->fail(closed => @args) unless $f->is_ready;
+		})
+	);
+	$f
 }
 
 =head2 cancel
@@ -160,6 +179,7 @@ sub cancel {
 				$f->done($self => $ctag) unless $f->is_cancelled;
 			})
 		);
+		$self->closure_protection($f);
 		$self->send_frame($frame);
 		$f;
 	});
@@ -187,6 +207,7 @@ sub bind_exchange {
         $self->push_pending(
             'Queue::BindOk' => [ $f, $self ],
         );
+		$self->closure_protection($f);
         $self->send_frame($frame);
         $f
     });
@@ -216,6 +237,7 @@ sub delete : method {
         $self->push_pending(
             'Queue::DeleteOk' => [ $f, $self ],
         );
+		$self->closure_protection($f);
         $self->send_frame($frame);
         $f
     });
