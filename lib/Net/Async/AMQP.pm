@@ -1153,7 +1153,7 @@ sub future {
 	my $self = shift;
 	my $f = $self->loop->new_future;
 	while(my ($k, $v) = splice @_, 0, 2) {
-		$f->can($k) ? $f->$k($v) : $self->debug_printf("Unable to call method $k on $f");
+		$f->can($k) ? $f->$k($v) : die "Unable to call method $k on $f";
 	}
 	$f
 }
