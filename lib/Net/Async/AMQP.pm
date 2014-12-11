@@ -336,6 +336,18 @@ sub on_closed {
 	my $self = shift;
 	my $reason = shift // 'unknown';
 	$self->debug_printf("Connection closed [%s]", $reason);
+
+	$_->cancel for grep !$_->is_ready, values %{$self->{channel_map}};
+
+	for my $ch (values %{$self->{channel_by_id}}) {
+		$ch->bus->invoke_event(
+			'close',
+			code    => 999,
+			message => 'Connection closed: ' . $reason,
+		);
+		$self->channel_closed($ch->id);
+	}
+
 	$self->stream->close if $self->stream;
 	$self->bus->invoke_event(close => $reason)
 }
