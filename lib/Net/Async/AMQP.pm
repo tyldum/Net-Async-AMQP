@@ -253,7 +253,7 @@ sub connect {
     });
 	# Also pick up connection termination
     $self->bus->subscribe_to_event(close => $close = sub {
-		$f->fail('Remote closed connection') unless $f->is_ready;
+		$f->fail(connect => 'Remote closed connection') unless $f->is_ready;
     });
 
     $loop->connect(
