@@ -1126,6 +1126,14 @@ sub send_frame {
     $self;
 }
 
+=head2 header_bytes
+
+Byte string representing the header bytes we should send on initial TCP connect.
+Net::AMQP uses AMQP\x01\x01\x09\x01, which does not appear to comply with AMQP 0.9.1
+section 4.2.2.
+
+=cut
+
 sub header_bytes { "AMQP\x00\x00\x09\x01" }
 
 sub _add_to_loop {
