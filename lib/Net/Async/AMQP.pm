@@ -231,7 +231,7 @@ sub connect {
     my $f = $self->loop->new_future;
 
     # Apply defaults
-    $self->{$_} = $args{$_} // $CONNECTION_DEFAULTS{$_} for keys %CONNECTION_DEFAULTS;
+    $self->{$_} = $args{$_} //= $CONNECTION_DEFAULTS{$_} for keys %CONNECTION_DEFAULTS;
 
 	# Remember our event callbacks so we can unsubscribe
 	my $connected;
