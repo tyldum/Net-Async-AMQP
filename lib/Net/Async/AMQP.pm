@@ -694,7 +694,7 @@ Maximum number of channels. This is whatever we ended up with after initial nego
 
 sub channel_max {
     my $self = shift;
-    return $self->{channel_max} unless @_;
+    return $self->{channel_max} ||= MAX_CHANNELS unless @_;
 
     $self->{channel_max} = shift;
     $self
