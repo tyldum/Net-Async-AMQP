@@ -1109,6 +1109,9 @@ sub send_frame {
 
     # Apply defaults and wrap as required
     $frame = $frame->frame_wrap if $frame->isa("Net::AMQP::Protocol::Base");
+	die "Frame has channel ID " . $frame->channel . " but we wanted " . $args{channel}
+		if defined $frame->channel && defined $args{channel} && $frame->channel != $args{channel};
+
     $frame->channel($args{channel} // 0) unless defined $frame->channel;
 #    warn "Sending frame " . Dumper($frame) if DEBUG;
 
