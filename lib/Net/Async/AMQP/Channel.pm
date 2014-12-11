@@ -103,6 +103,7 @@ sub confirm_mode {
     $self->push_pending(
         'Confirm::SelectOk' => [ $f, $self ]
     );
+	$self->closure_protection($f);
     $self->send_frame($frame);
     return $f;
 }
@@ -146,6 +147,7 @@ sub exchange_declare {
     $self->push_pending(
         'Exchange::DeclareOk' => [ $f, $self ]
     );
+	$self->closure_protection($f);
     $self->send_frame($frame);
     return $f;
 }
@@ -206,6 +208,7 @@ sub queue_declare {
                 $f->done($q) unless $f->is_ready;
             }
         );
+		$self->closure_protection($f);
         $self->send_frame($frame);
         $f;
     })
@@ -291,6 +294,7 @@ sub publish {
             cluster_id       => undef,
             weight           => 0,
         );
+		$self->closure_protection($f);
         $self->send_frame(
             $_,
         ) for @frames;
@@ -333,6 +337,7 @@ sub qos {
                 prefetch_size  => $args{prefetch_size} || 0,
             )
         );
+		$self->closure_protection($f);
         $self->send_frame($frame);
         $f
     });
@@ -441,6 +446,7 @@ sub close {
     $self->push_pending(
         'Channel::CloseOk' => [ $f, $self ],
     );
+	$self->closure_protection($f);
     $self->send_frame($frame);
     return $f;
 }
@@ -640,6 +646,24 @@ sub id {
 sub as_string {
 	my $self = shift;
 	sprintf "Channel[%d]", $self->id;
+}
+
+sub closure_protection {
+	my ($self, $f) = @_;
+	my @ev;
+	my $bus = $self->bus;
+	$f->on_ready(sub {
+		$bus->unsubscribe_from_event(@ev);
+		@ev = ();
+	});
+	$bus->subscribe_to_event(
+		@ev = (close => sub {
+			my ($ev, @args) = @_;
+			warn "Closed channel - @args\n";
+			$f->fail(closed => @args) unless $f->is_ready;
+		})
+	);
+	$f
 }
 
 1;

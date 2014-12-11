@@ -66,15 +66,23 @@ sub channel { shift->{channel} }
 
 =cut
 
-=head1 PROXIED METHODS
-
-The following methods are proxied to the L<Net::Async::AMQP> class.
+=head1 PROXIED METHODS - Net::Async::AMQP
 
 =cut
 
 sub write { shift->amqp->write(@_) }
+
+=head1 PROXIED METHODS - Net::Async::AMQP::Channel
+
+=cut
+
 sub send_frame { shift->channel->send_frame(@_) }
 sub push_pending { shift->channel->push_pending(@_) }
+sub closure_protection { shift->channel->closure_protection(@_) }
+
+=head1 METHODS
+
+=cut
 
 sub listen {
     my $self = shift;
@@ -126,24 +134,6 @@ sub listen {
         $self->send_frame($frame);
         $f;
     });
-}
-
-sub closure_protection {
-	my ($self, $f) = @_;
-	my @ev;
-	my $bus = $self->channel->bus;
-	$f->on_ready(sub {
-		$bus->unsubscribe_from_event(@ev);
-		@ev = ();
-	});
-	$bus->subscribe_to_event(
-		@ev = (close => sub {
-			my ($ev, @args) = @_;
-			warn "Closed channel - @args\n";
-			$f->fail(closed => @args) unless $f->is_ready;
-		})
-	);
-	$f
 }
 
 =head2 cancel
