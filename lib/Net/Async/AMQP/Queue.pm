@@ -223,7 +223,6 @@ sub delete : method {
     my $self = shift;
     my %args = @_;
 
-    # Attempt to bind after we've successfully declared the exchange.
     $self->future->then(sub {
         my $f = $self->loop->new_future;
         $self->debug_printf("Deleting queue [%s]", $self->queue_name);
