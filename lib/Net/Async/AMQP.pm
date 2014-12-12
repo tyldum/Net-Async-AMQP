@@ -492,11 +492,15 @@ Returns the next available channel ready for L</open_channel>.
 Note that whatever it reports will be completely wrong if you've
 manually specified a channel anywhere, so don't do that.
 
+If channels have been closed on this connection, those IDs will be
+reused in preference to handing out a new ID.
+
 =cut
 
 sub next_channel {
     my $self = shift;
 	$self->{channel} //= 0;
+	return shift @{$self->{available_channel_id}||=[]} if @{$self->{available_channel_id}};
 	return undef if $self->{channel} >= $self->channel_max;
     ++$self->{channel}
 }
@@ -600,6 +604,9 @@ sub channel_closed {
 		or die "Had a close indication for channel $id but this channel is unknown";
 	$f->cancel unless $f->is_ready;
     delete $self->{channel_by_id}{$id};
+
+	# Record this ID as available for the next time we need to open a new channel
+	push @{$self->{available_channel_id}}, $id;
     $self
 }
 

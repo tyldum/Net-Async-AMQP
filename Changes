@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	New features:
+	* Support reusing closed channel IDs by default in Net::Async::AMQP
 
 0.012     2014-12-11 11:04:10+00:00 Europe/London
 	No new features.
