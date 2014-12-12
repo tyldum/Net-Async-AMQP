@@ -422,8 +422,8 @@ sub setup_tuning {
 			my ($self, $frame) = @_;
 			my $method_frame = $frame->method_frame;
 			# Lowest value for frame max wins - our predef constant, or whatever the server suggests
-			$self->frame_max(my $frame_max = min $method_frame->frame_max, MAX_FRAME_SIZE);
-			$self->channel_max(my $channel_max = $method_frame->channel_max || $self->channel_max || MAX_CHANNELS);
+			$self->frame_max(my $frame_max = min $method_frame->frame_max, $self->MAX_FRAME_SIZE);
+			$self->channel_max(my $channel_max = $method_frame->channel_max || $self->channel_max || $self->MAX_CHANNELS);
 			$self->debug_printf("Remote says %d channels, will use %d", $method_frame->channel_max, $channel_max);
 			$self->{channel} = 0;
 			$self->send_frame(
