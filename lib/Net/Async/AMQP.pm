@@ -500,9 +500,41 @@ reused in preference to handing out a new ID.
 sub next_channel {
 	my $self = shift;
 	$self->{channel} //= 0;
-	return shift @{$self->{available_channel_id}||=[]} if @{$self->{available_channel_id}};
+	return shift @{$self->{available_channel_id}} if @{$self->{available_channel_id} ||=[] };
 	return undef if $self->{channel} >= $self->channel_max;
 	++$self->{channel}
+}
+
+=head2 create_channel
+
+Returns a new ::Channel instance, populating the map of assigned channels in the
+process. Takes a single parameter:
+
+=over 4
+
+=item * $id - the channel ID, can be undef to assign via L</next_channel>
+
+=back
+
+=cut
+
+sub create_channel {
+	my ($self, $id) = @_;
+	$id //= $self->next_channel;
+	die "No channel available" unless $id;
+
+	my $f = $self->loop->new_future;
+	$self->{channel_map}{$id} = $f;
+	$self->add_child(
+		my $c = Net::Async::AMQP::Channel->new(
+			amqp   => $self,
+			future => $f,
+			id     => $id,
+		)
+	);
+	$self->{channel_by_id}{$id} = $c;
+	$self->debug_printf("Record channel %d as %s", $id, $c);
+	return $c;
 }
 
 =head2 open_channel
@@ -516,22 +548,15 @@ Returns the new L<Net::Async::AMQP::Channel> instance.
 sub open_channel {
 	my $self = shift;
 	my %args = @_;
-	my $f = $self->loop->new_future;
 	my $channel = $args{channel} // $self->next_channel;
 	die "Channel " . $channel . " exists already" if exists $self->{channel_map}{$channel};
-	$self->{channel_map}{$channel} = $f;
+	my $c = $self->create_channel($channel);
+	my $f = $c->future;
 
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Channel::Open->new,
 	);
 	$frame->channel($channel);
-	$self->add_child(my $c = Net::Async::AMQP::Channel->new(
-		amqp   => $self,
-		future => $f,
-		id     => $channel,
-	));
-	$self->{channel_by_id}{$channel} = $c;
-	$self->debug_printf("Record channel %d as %s", $channel, $c);
 	$c->push_pending(
 		'Channel::OpenOk' => sub {
 			my ($c, $frame) = @_;
@@ -715,7 +740,7 @@ Maximum number of channels. This is whatever we ended up with after initial nego
 
 sub channel_max {
 	my $self = shift;
-	return $self->{channel_max} ||= MAX_CHANNELS unless @_;
+	return $self->{channel_max} ||= $self->MAX_CHANNELS unless @_;
 
 	$self->{channel_max} = shift;
 	$self
