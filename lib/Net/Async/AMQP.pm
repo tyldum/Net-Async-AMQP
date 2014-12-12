@@ -155,10 +155,10 @@ Passing parameters directly to L</connect> is much safer, please do that instead
 =cut
 
 our %CONNECTION_DEFAULTS = (
-    port => 5672,
-    host => 'localhost',
-    user => 'guest',
-    pass => 'guest',
+	port => 5672,
+	host => 'localhost',
+	user => 'guest',
+	pass => 'guest',
 );
 
 =head1 METHODS
@@ -181,11 +181,11 @@ Returns the new instance.
 =cut
 
 sub configure {
-    my ($self, %args) = @_;
+	my ($self, %args) = @_;
 	for (qw(heartbeat_interval)) {
 		$self->{$_} = delete $args{$_} if exists $args{$_}
 	}
-    $self->SUPER::configure(%args)
+	$self->SUPER::configure(%args)
 }
 
 =head2 bus
@@ -223,15 +223,15 @@ Returns $self.
 =cut
 
 sub connect {
-    my $self = shift;
-    my %args = @_;
+	my $self = shift;
+	my %args = @_;
 
-    die 'no loop' unless my $loop = $self->loop;
+	die 'no loop' unless my $loop = $self->loop;
 
-    my $f = $self->loop->new_future;
+	my $f = $self->loop->new_future;
 
-    # Apply defaults
-    $self->{$_} = $args{$_} //= $CONNECTION_DEFAULTS{$_} for keys %CONNECTION_DEFAULTS;
+	# Apply defaults
+	$self->{$_} = $args{$_} //= $CONNECTION_DEFAULTS{$_} for keys %CONNECTION_DEFAULTS;
 
 	# Remember our event callbacks so we can unsubscribe
 	my $connected;
@@ -247,42 +247,42 @@ sub connect {
 		undef $f;
 	});
 
-    # One-shot event on connection
-    $self->bus->subscribe_to_event(connected => $connected = sub {
+	# One-shot event on connection
+	$self->bus->subscribe_to_event(connected => $connected = sub {
 		$f->done($self) unless $f->is_ready;
-    });
+	});
 	# Also pick up connection termination
-    $self->bus->subscribe_to_event(close => $close = sub {
+	$self->bus->subscribe_to_event(close => $close = sub {
 		$f->fail(connect => 'Remote closed connection') unless $f->is_ready;
-    });
+	});
 
-    $loop->connect(
-        host     => $self->{host},
-        # local_host can be used to send from a different source address,
-        # sometimes useful for routing purposes
-        (exists $args{local_host} ? (local_host => $args{local_host}) : ()),
-        service  => $self->{port},
-        socktype => 'stream',
+	$loop->connect(
+		host     => $self->{host},
+		# local_host can be used to send from a different source address,
+		# sometimes useful for routing purposes
+		(exists $args{local_host} ? (local_host => $args{local_host}) : ()),
+		service  => $self->{port},
+		socktype => 'stream',
 
-        on_stream => $self->curry::on_stream(\%args),
+		on_stream => $self->curry::on_stream(\%args),
 
-        on_resolve_error => $f->curry::fail('resolve'),
-        on_connect_error => $f->curry::fail('connect'),
-    );
-    $f;
+		on_resolve_error => $f->curry::fail('resolve'),
+		on_connect_error => $f->curry::fail('connect'),
+	);
+	$f;
 }
 
 sub on_stream {
-    my ($self, $args, $stream) = @_;
+	my ($self, $args, $stream) = @_;
 	$self->debug_printf("Stream received");
-    $self->{stream} = $stream;
-    $stream->configure(
-        on_read => $self->curry::on_read,
-    );
-    $self->add_child($stream);
-    $self->apply_heartbeat_timer if $self->heartbeat_interval;
-    $self->post_connect(%$args);
-    return;
+	$self->{stream} = $stream;
+	$stream->configure(
+		on_read => $self->curry::on_read,
+	);
+	$self->add_child($stream);
+	$self->apply_heartbeat_timer if $self->heartbeat_interval;
+	$self->post_connect(%$args);
+	return;
 }
 
 sub dump_frame {
@@ -306,7 +306,7 @@ sub dump_frame {
 }
 
 sub on_read {
-    my ($self, $stream, $buffref, $eof) = @_;
+	my ($self, $stream, $buffref, $eof) = @_;
 	# Frame dumping support - not that useful yet, so it's disabled
 	if(0) {
 		my $mem = $$buffref;
@@ -327,9 +327,9 @@ sub on_read {
 	$self->last_frame_time($self->loop->time);
 
 	# As each frame is parsed it will be removed from the buffer
-    $self->process_frame($_) for Net::AMQP->parse_raw_frames($buffref);
-    $self->on_closed if $eof;
-    return 0;
+	$self->process_frame($_) for Net::AMQP->parse_raw_frames($buffref);
+	$self->on_closed if $eof;
+	return 0;
 }
 
 sub on_closed {
@@ -362,48 +362,48 @@ Returns $self.
 =cut
 
 sub post_connect {
-    my $self = shift;
-    my %args = @_;
+	my $self = shift;
+	my %args = @_;
 
-    my %client_prop = (
-        platform    => 'Perl/NetAsyncAMQP',
-        product     => __PACKAGE__,
-        information => $args{information} // 'http://search.cpan.org/perldoc?Net::Async::AMQP',
-        version     => $VERSION,
+	my %client_prop = (
+		platform    => 'Perl/NetAsyncAMQP',
+		product     => __PACKAGE__,
+		information => $args{information} // 'http://search.cpan.org/perldoc?Net::Async::AMQP',
+		version     => $VERSION,
 		($args{client_properties} ? %{$args{client_properties}} : ()),
-    );
+	);
 
-    $self->push_pending(
-        'Connection::Start' => sub {
-            my ($self, $frame) = @_;
-            my $method_frame = $frame->method_frame;
-            my @mech = split ' ', $method_frame->mechanisms;
-            die "Auth mechanism " . AUTH_MECH . " not supported, unable to continue - options were: @mech" unless grep $_ eq AUTH_MECH, @mech;
-            my $output = Net::AMQP::Frame::Method->new(
-                channel => 0,
-                method_frame => Net::AMQP::Protocol::Connection::StartOk->new(
-                    client_properties => \%client_prop,
-                    mechanism         => AUTH_MECH,
-                    locale            => $args{locale} // 'en_GB',
-                    response          => {
-                        LOGIN    => $args{user},
-                        PASSWORD => $args{pass},
-                    },
-                ),
-            );
-            $self->setup_tuning(%args);
-            $self->send_frame($output);
-        }
-    );
+	$self->push_pending(
+		'Connection::Start' => sub {
+			my ($self, $frame) = @_;
+			my $method_frame = $frame->method_frame;
+			my @mech = split ' ', $method_frame->mechanisms;
+			die "Auth mechanism " . AUTH_MECH . " not supported, unable to continue - options were: @mech" unless grep $_ eq AUTH_MECH, @mech;
+			my $output = Net::AMQP::Frame::Method->new(
+				channel => 0,
+				method_frame => Net::AMQP::Protocol::Connection::StartOk->new(
+					client_properties => \%client_prop,
+					mechanism         => AUTH_MECH,
+					locale            => $args{locale} // 'en_GB',
+					response          => {
+						LOGIN    => $args{user},
+						PASSWORD => $args{pass},
+					},
+				),
+			);
+			$self->setup_tuning(%args);
+			$self->send_frame($output);
+		}
+	);
 
-    # Send the initial header bytes. It'd be nice
+	# Send the initial header bytes. It'd be nice
 	# if we could use L<Net::AMQP::Protocol/header>
 	# for this, but it seems to be sending 1 for
 	# the protocol ID, and the revision number is
 	# before the major/minor version.
-    # $self->write(Net::AMQP::Protocol->header);
-    $self->write($self->header_bytes);
-    $self
+	# $self->write(Net::AMQP::Protocol->header);
+	$self->write($self->header_bytes);
+	$self
 }
 
 =head2 setup_tuning
@@ -415,27 +415,27 @@ Returns $self.
 =cut
 
 sub setup_tuning {
-    my $self = shift;
-    my %args = @_;
-    $self->push_pending(
-        'Connection::Tune' => sub {
-            my ($self, $frame) = @_;
-            my $method_frame = $frame->method_frame;
-            # Lowest value for frame max wins - our predef constant, or whatever the server suggests
-            $self->frame_max(my $frame_max = min $method_frame->frame_max, MAX_FRAME_SIZE);
+	my $self = shift;
+	my %args = @_;
+	$self->push_pending(
+		'Connection::Tune' => sub {
+			my ($self, $frame) = @_;
+			my $method_frame = $frame->method_frame;
+			# Lowest value for frame max wins - our predef constant, or whatever the server suggests
+			$self->frame_max(my $frame_max = min $method_frame->frame_max, MAX_FRAME_SIZE);
 			$self->channel_max(my $channel_max = $method_frame->channel_max || $self->channel_max || MAX_CHANNELS);
 			$self->debug_printf("Remote says %d channels, will use %d", $method_frame->channel_max, $channel_max);
 			$self->{channel} = 0;
-            $self->send_frame(
-                Net::AMQP::Protocol::Connection::TuneOk->new(
-                    channel_max => $channel_max,
-                    frame_max   => $frame_max,
-                    heartbeat   => $self->heartbeat_interval,
-                )
-            );
-            $self->open_connection(%args);
-        }
-    );
+			$self->send_frame(
+				Net::AMQP::Protocol::Connection::TuneOk->new(
+					channel_max => $channel_max,
+					frame_max   => $frame_max,
+					heartbeat   => $self->heartbeat_interval,
+				)
+			);
+			$self->open_connection(%args);
+		}
+	);
 }
 
 =head2 open_connection
@@ -448,19 +448,19 @@ Returns $self.
 =cut
 
 sub open_connection {
-    my $self = shift;
-    my %args = @_;
-    $self->setup_connection(%args);
-    $self->send_frame(
-        Net::AMQP::Frame::Method->new(
-            method_frame => Net::AMQP::Protocol::Connection::Open->new(
-                virtual_host => $args{vhost} // '/',
-                capabilities => '',
-                insist       => 1,
-            ),
-        )
-    );
-    $self
+	my $self = shift;
+	my %args = @_;
+	$self->setup_connection(%args);
+	$self->send_frame(
+		Net::AMQP::Frame::Method->new(
+			method_frame => Net::AMQP::Protocol::Connection::Open->new(
+				virtual_host => $args{vhost} // '/',
+				capabilities => '',
+				insist       => 1,
+			),
+		)
+	);
+	$self
 }
 
 =head2 setup_connection
@@ -473,17 +473,17 @@ Returns $self.
 =cut
 
 sub setup_connection {
-    my $self = shift;
-    my %args = @_;
-    $self->push_pending(
-        'Connection::OpenOk' => sub {
-            my ($self, $frame) = @_;
-            my $method_frame = $frame->method_frame;
+	my $self = shift;
+	my %args = @_;
+	$self->push_pending(
+		'Connection::OpenOk' => sub {
+			my ($self, $frame) = @_;
+			my $method_frame = $frame->method_frame;
 			$self->debug_printf("OpenOk received");
-            $self->bus->invoke_event(connected =>);
-        }
-    );
-    $self
+			$self->bus->invoke_event(connected =>);
+		}
+	);
+	$self
 }
 
 =head2 next_channel
@@ -498,11 +498,11 @@ reused in preference to handing out a new ID.
 =cut
 
 sub next_channel {
-    my $self = shift;
+	my $self = shift;
 	$self->{channel} //= 0;
 	return shift @{$self->{available_channel_id}||=[]} if @{$self->{available_channel_id}};
 	return undef if $self->{channel} >= $self->channel_max;
-    ++$self->{channel}
+	++$self->{channel}
 }
 
 =head2 open_channel
@@ -514,33 +514,33 @@ Returns the new L<Net::Async::AMQP::Channel> instance.
 =cut
 
 sub open_channel {
-    my $self = shift;
-    my %args = @_;
-    my $f = $self->loop->new_future;
-    my $channel = $args{channel} // $self->next_channel;
+	my $self = shift;
+	my %args = @_;
+	my $f = $self->loop->new_future;
+	my $channel = $args{channel} // $self->next_channel;
 	die "Channel " . $channel . " exists already" if exists $self->{channel_map}{$channel};
 	$self->{channel_map}{$channel} = $f;
 
-    my $frame = Net::AMQP::Frame::Method->new(
-        method_frame => Net::AMQP::Protocol::Channel::Open->new,
-    );
-    $frame->channel($channel);
-    $self->add_child(my $c = Net::Async::AMQP::Channel->new(
-        amqp   => $self,
-        future => $f,
-        id     => $channel,
-    ));
-    $self->{channel_by_id}{$channel} = $c;
+	my $frame = Net::AMQP::Frame::Method->new(
+		method_frame => Net::AMQP::Protocol::Channel::Open->new,
+	);
+	$frame->channel($channel);
+	$self->add_child(my $c = Net::Async::AMQP::Channel->new(
+		amqp   => $self,
+		future => $f,
+		id     => $channel,
+	));
+	$self->{channel_by_id}{$channel} = $c;
 	$self->debug_printf("Record channel %d as %s", $channel, $c);
-    $c->push_pending(
-        'Channel::OpenOk' => sub {
-            my ($c, $frame) = @_;
+	$c->push_pending(
+		'Channel::OpenOk' => sub {
+			my ($c, $frame) = @_;
 			my $f = $self->{channel_map}{$frame->channel};
 			$f->done($c) unless $f->is_ready;
-        }
-    );
-    $self->send_frame($frame);
-    return $f;
+		}
+	);
+	$self->send_frame($frame);
+	return $f;
 }
 
 =head2 close
@@ -552,12 +552,12 @@ Returns a L<Future> which will resolve with C<$self> when the connection is clos
 =cut
 
 sub close {
-    my $self = shift;
-    my %args = @_;
+	my $self = shift;
+	my %args = @_;
 
 	$self->heartbeat_send_timer->stop if $self->heartbeat_send_timer;
 
-    my $f = $self->loop->new_future;
+	my $f = $self->loop->new_future;
 
 	# We might end up with a connection shutdown rather
 	# than a clean Connection::Close response, so
@@ -581,17 +581,17 @@ sub close {
 		weaken $f;
 	});
 
-    my $frame = Net::AMQP::Frame::Method->new(
-        method_frame => Net::AMQP::Protocol::Connection::Close->new(
+	my $frame = Net::AMQP::Frame::Method->new(
+		method_frame => Net::AMQP::Protocol::Connection::Close->new(
 			reply_code => $args{code} // 320,
 			reply_text => $args{text} // 'Request connection close',
 		),
-    );
-    $self->push_pending(
-        'Connection::CloseOk' => [ $f, $self ],
-    );
-    $self->send_frame($frame);
-    return $f;
+	);
+	$self->push_pending(
+		'Connection::CloseOk' => [ $f, $self ],
+	);
+	$self->send_frame($frame);
+	return $f;
 }
 
 =head2 channel_closed
@@ -599,15 +599,15 @@ sub close {
 =cut
 
 sub channel_closed {
-    my ($self, $id) = @_;
+	my ($self, $id) = @_;
 	my $f = delete $self->{channel_map}{$id}
 		or die "Had a close indication for channel $id but this channel is unknown";
 	$f->cancel unless $f->is_ready;
-    delete $self->{channel_by_id}{$id};
+	delete $self->{channel_by_id}{$id};
 
 	# Record this ID as available for the next time we need to open a new channel
 	push @{$self->{available_channel_id}}, $id;
-    $self
+	$self
 }
 
 sub channel_by_id { my $self = shift; $self->{channel_by_id}{+shift} }
@@ -632,10 +632,10 @@ Returns $self.
 =cut
 
 sub next_pending {
-    my ($self, $type, $frame) = @_;
-    $self->debug_printf("Check next pending for %s", $type);
+	my ($self, $type, $frame) = @_;
+	$self->debug_printf("Check next pending for %s", $type);
 
-    if(my $next = shift @{$self->{pending}{$type} || []}) {
+	if(my $next = shift @{$self->{pending}{$type} || []}) {
 		# We have a registered handler for this frame type. This usually
 		# means that we've sent a frame and are awaiting a response.
 		if(ref($next) eq 'ARRAY') {
@@ -655,7 +655,7 @@ sub next_pending {
 			unexpected_frame => $type, $frame
 		);
 	}
-    $self
+	$self
 }
 
 =head1 METHODS - Accessors
@@ -700,11 +700,11 @@ value negotiated with the remote server.
 =cut
 
 sub frame_max {
-    my $self = shift;
-    return $self->{frame_max} unless @_;
+	my $self = shift;
+	return $self->{frame_max} unless @_;
 
-    $self->{frame_max} = shift;
-    $self
+	$self->{frame_max} = shift;
+	$self
 }
 
 =head2 channel_max
@@ -714,11 +714,11 @@ Maximum number of channels. This is whatever we ended up with after initial nego
 =cut
 
 sub channel_max {
-    my $self = shift;
-    return $self->{channel_max} ||= MAX_CHANNELS unless @_;
+	my $self = shift;
+	return $self->{channel_max} ||= MAX_CHANNELS unless @_;
 
-    $self->{channel_max} = shift;
-    $self
+	$self->{channel_max} = shift;
+	$self
 }
 
 =head2 last_frame_time
@@ -728,12 +728,12 @@ Timestamp of the last frame we received from the remote. Used for handling heart
 =cut
 
 sub last_frame_time {
-    my $self = shift;
-    return $self->{last_frame_time} unless @_;
+	my $self = shift;
+	return $self->{last_frame_time} unless @_;
 
-    $self->{last_frame_time} = shift;
+	$self->{last_frame_time} = shift;
 	$self->heartbeat_receive_timer->reset if $self->heartbeat_receive_timer;
-    $self
+	$self
 }
 
 =head2 stream
@@ -785,7 +785,7 @@ Enable both heartbeat timers.
 =cut
 
 sub apply_heartbeat_timer {
-    my $self = shift;
+	my $self = shift;
 	{ # On expiry, will trigger a heartbeat send from us to the server
 		my $timer = IO::Async::Timer::Countdown->new(
 			delay     => $self->heartbeat_interval,
@@ -804,7 +804,7 @@ sub apply_heartbeat_timer {
 		$timer->start;
 		Scalar::Util::weaken($self->{heartbeat_receive_timer} = $timer);
 	}
-    $self
+	$self
 }
 
 =head2 reset_heartbeat
@@ -817,10 +817,10 @@ seconds.
 =cut
 
 sub reset_heartbeat {
-    my $self = shift;
-    return unless my $timer = $self->heartbeat_send_timer;
+	my $self = shift;
+	return unless my $timer = $self->heartbeat_send_timer;
 
-    $timer->reset;
+	$timer->reset;
 }
 
 
@@ -868,15 +868,15 @@ Sends the heartbeat frame.
 =cut
 
 sub send_heartbeat {
-    my $self = shift;
+	my $self = shift;
 	$self->debug_printf("Sending heartbeat frame");
 
-    # Heartbeat messages apply to the connection rather than
-    # individual channels, so we use channel 0 to represent this
-    $self->send_frame(
-        Net::AMQP::Frame::Heartbeat->new,
-        channel => 0,
-    );
+	# Heartbeat messages apply to the connection rather than
+	# individual channels, so we use channel 0 to represent this
+	$self->send_frame(
+		Net::AMQP::Frame::Heartbeat->new,
+		channel => 0,
+	);
 
 	# Ensure heartbeat timer is active for next time
 	if(my $timer = $self->heartbeat_send_timer) {
@@ -906,12 +906,12 @@ Returns C< $self >.
 =cut
 
 sub push_pending {
-    my $self = shift;
-    while(@_) {
-        my ($type, $code) = splice @_, 0, 2;
-        push @{$self->{pending}{$type}}, $code;
-    }
-    return $self;
+	my $self = shift;
+	while(@_) {
+		my ($type, $code) = splice @_, 0, 2;
+		push @{$self->{pending}{$type}}, $code;
+	}
+	return $self;
 }
 
 =head2 remove_pending
@@ -924,8 +924,8 @@ Returns C< $self >.
 
 sub remove_pending {
 	my $self = shift;
-    while(@_) {
-        my ($type, $code) = splice @_, 0, 2;
+	while(@_) {
+		my ($type, $code) = splice @_, 0, 2;
 		# This is the same as extract_by { $_ eq $code } @{$self->{pending}{$type}};,
 		# but since we'll be calling it a lot might as well do it inline:
 		splice
@@ -934,8 +934,8 @@ sub remove_pending {
 			1 for grep {
 				$self->{pending}{$type}[$_] eq $code
 			} reverse 0..$#{$self->{pending}{$type}};
-    }
-    return $self;
+	}
+	return $self;
 }
 
 =head2 write
@@ -945,9 +945,9 @@ Writes data to the server.
 =cut
 
 sub write {
-    my $self = shift;
-    $self->stream->write(@_);
-    $self
+	my $self = shift;
+	$self->stream->write(@_);
+	$self
 }
 
 =head2 get_frame_type
@@ -967,19 +967,19 @@ Returns string representing type, typically the base class with Net::AMQP::Proto
 { # We cache the lookups since they're unlikely to change during the application lifecycle
 my %types;
 sub get_frame_type {
-    my ($self, $raw_frame) = @_;
+	my ($self, $raw_frame) = @_;
 	return 'Heartbeat' if $raw_frame->isa('Net::AMQP::Frame::Heartbeat');
 	return 'Header' if $raw_frame->isa('Net::AMQP::Frame::Header');
 	return 'Body' if $raw_frame->isa('Net::AMQP::Frame::Body');
 
-    my $frame = $raw_frame->method_frame;
-    my $ref = ref $frame;
-    return $types{$ref} if exists $types{$ref};
-    my $re = qr/^Net::AMQP::Protocol::([^:]+::[^:]+)$/;
-    my ($frame_type) = grep /$re/, Class::ISA::self_and_super_path($ref);
-    ($frame_type) = $frame_type =~ $re;
-    $types{$ref} = $frame_type;
-    return $frame_type;
+	my $frame = $raw_frame->method_frame;
+	my $ref = ref $frame;
+	return $types{$ref} if exists $types{$ref};
+	my $re = qr/^Net::AMQP::Protocol::([^:]+::[^:]+)$/;
+	my ($frame_type) = grep /$re/, Class::ISA::self_and_super_path($ref);
+	($frame_type) = $frame_type =~ $re;
+	$types{$ref} = $frame_type;
+	return $frame_type;
 }
 }
 
@@ -1000,9 +1000,9 @@ Returns $self.
 =cut
 
 sub process_frame {
-    my ($self, $frame) = @_;
+	my ($self, $frame) = @_;
 
-    my $frame_type = $self->get_frame_type($frame);
+	my $frame_type = $self->get_frame_type($frame);
 
 	if($frame_type eq 'Heartbeat') {
 		# Ignore these completely. Since we have the last frame update at the data-read
@@ -1029,7 +1029,7 @@ sub process_frame {
 
 	$self->next_pending($frame_type, $frame);
 
-    return $self;
+	return $self;
 }
 
 =head2 split_payload
@@ -1051,48 +1051,48 @@ Returns list of frames suitable for passing to L</send_frame>.
 =cut
 
 sub split_payload {
-    my $self = shift;
-    my $payload = shift;
-    my %opts = @_;
+	my $self = shift;
+	my $payload = shift;
+	my %opts = @_;
 
-    # Get the original content length first
-    my $payload_size = length $payload;
+	# Get the original content length first
+	my $payload_size = length $payload;
 
-    my @body_frames;
-    while (length $payload) {
-        my $chunk = substr $payload, 0, $self->frame_max - PAYLOAD_HEADER_LENGTH, '';
-        push @body_frames, Net::AMQP::Frame::Body->new(
-            payload => $chunk
-        );
-    }
+	my @body_frames;
+	while (length $payload) {
+		my $chunk = substr $payload, 0, $self->frame_max - PAYLOAD_HEADER_LENGTH, '';
+		push @body_frames, Net::AMQP::Frame::Body->new(
+			payload => $chunk
+		);
+	}
 
-    return
-        Net::AMQP::Protocol::Basic::Publish->new(
-            map {; $_ => $opts{$_} } grep defined($opts{$_}), qw(ticket exchange routing_key mandatory immediate)
-        ),
-        Net::AMQP::Frame::Header->new(
-            weight       => $opts{weight} || 0,
-            body_size    => $payload_size,
-            header_frame => Net::AMQP::Protocol::Basic::ContentHeader->new(
-                map {; $_ => $opts{$_} } grep defined($opts{$_}), qw(
-                    content_type
-                    content_encoding
-                    headers
-                    delivery_mode
-                    priority
-                    correlation_id
-                    reply_to
-                    expiration
-                    message_id
-                    timestamp
-                    type
-                    user_id
-                    app_id
-                    cluster_id
-                )
-            ),
-        ),
-        @body_frames;
+	return
+		Net::AMQP::Protocol::Basic::Publish->new(
+			map {; $_ => $opts{$_} } grep defined($opts{$_}), qw(ticket exchange routing_key mandatory immediate)
+		),
+		Net::AMQP::Frame::Header->new(
+			weight       => $opts{weight} || 0,
+			body_size    => $payload_size,
+			header_frame => Net::AMQP::Protocol::Basic::ContentHeader->new(
+				map {; $_ => $opts{$_} } grep defined($opts{$_}), qw(
+					content_type
+					content_encoding
+					headers
+					delivery_mode
+					priority
+					correlation_id
+					reply_to
+					expiration
+					message_id
+					timestamp
+					type
+					user_id
+					app_id
+					cluster_id
+				)
+			),
+		),
+		@body_frames;
 }
 
 =head2 send_frame
@@ -1112,25 +1112,25 @@ Returns $self.
 =cut
 
 sub send_frame {
-    my $self = shift;
-    my $frame = shift;
-    my %args = @_;
+	my $self = shift;
+	my $frame = shift;
+	my %args = @_;
 
-    # Apply defaults and wrap as required
-    $frame = $frame->frame_wrap if $frame->isa("Net::AMQP::Protocol::Base");
+	# Apply defaults and wrap as required
+	$frame = $frame->frame_wrap if $frame->isa("Net::AMQP::Protocol::Base");
 	die "Frame has channel ID " . $frame->channel . " but we wanted " . $args{channel}
 		if defined $frame->channel && defined $args{channel} && $frame->channel != $args{channel};
 
-    $frame->channel($args{channel} // 0) unless defined $frame->channel;
+	$frame->channel($args{channel} // 0) unless defined $frame->channel;
 #    warn "Sending frame " . Dumper($frame) if DEBUG;
 
-    # Get bytes to send across our transport
-    my $data = $frame->to_raw_frame;
+	# Get bytes to send across our transport
+	my $data = $frame->to_raw_frame;
 
 #    warn "Sending data: " . Dumper($frame) . "\n";
-    $self->write($data);
+	$self->write($data);
 	$self->reset_heartbeat;
-    $self;
+	$self;
 }
 
 =head2 header_bytes
@@ -1176,7 +1176,7 @@ L<Mixin::Event::Dispatch/subscribe_to_event> to watch for them:
 
  $mq->bus->subscribe_to_event(
    heartbeat_failure => sub {
-     my ($ev, $last) = @_;
+	 my ($ev, $last) = @_;
 	 print "Heartbeat failure detected\n";
    }
  );
