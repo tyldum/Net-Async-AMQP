@@ -5,7 +5,6 @@ use warnings;
 
 use parent qw(IO::Async::Stream);
 
-use constant DEBUG => 1;
 
 use curry;
 use Net::Async::AMQP;
