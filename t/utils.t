@@ -16,7 +16,7 @@ use Net::Async::AMQP::Utils;
 			locale            => 'en_GB',
 		),
 	);
-	is(frame_info($frame), 'Connection::Start');
+	is(amqp_frame_info($frame), 'Connection::Start');
 }
 
 done_testing;

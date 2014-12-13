@@ -14,13 +14,26 @@ Net::Async::AMQP::Server::Protocol
 =cut
 
 use curry;
+use Net::Async::AMQP::Utils qw(amqp_frame_type);
+
+=head2 new
+
+=cut
 
 sub new {
 	my $class = shift;
 	my $self = bless { @_ }, $class;
 }
 
+=head2 write
+
+=cut
+
 sub write { my $self = shift; $self->{write}->(@_) }
+
+=head2 on_read
+
+=cut
 
 sub on_read {
 	my ($self, $buffer, $eof) = @_;
@@ -31,6 +44,10 @@ sub on_read {
 	$self->debug_printf("Protocol $proto, version " . join '.', sprintf '%08x', unpack 'N1', $version);
 	$self->can('startup');
 }
+
+=head2 startup
+
+=cut
 
 sub startup {
 	my ($self, $buffer, $eof) = @_;
@@ -53,6 +70,10 @@ sub startup {
 	$self->can('conn_start');
 }
 
+=head2 push_pending
+
+=cut
+
 sub push_pending {
     my $self = shift;
     while(@_) {
@@ -61,6 +82,10 @@ sub push_pending {
     }
     return $self;
 }
+
+=head2 remove_pending
+
+=cut
 
 sub remove_pending {
 	my $self = shift;
@@ -77,6 +102,10 @@ sub remove_pending {
     }
     return $self;
 }
+
+=head2 next_pending
+
+=cut
 
 sub next_pending {
     my ($self, $type, $frame) = @_;
@@ -105,13 +134,17 @@ sub next_pending {
     $self
 }
 
+=head2 process_frame
+
+=cut
+
 sub process_frame {
     my ($self, $frame) = @_;
 #	if(my $ch = $self->channel_by_id($frame->channel)) {
 #		return $self if $ch->next_pending($frame);
 #	}
 
-    my $frame_type = $self->get_frame_type($frame);
+    my $frame_type = amqp_frame_type($frame);
 
 	# Basic::Deliver - we're delivering a message to a ctag
 	# Frame::Header - header part of message
@@ -134,8 +167,11 @@ sub process_frame {
     return $self;
 }
 
-
 use Data::Dumper;
+
+=head2 conn_start
+
+=cut
 
 sub conn_start {
 	my ($self, $buffer, $eof) = @_;
@@ -251,34 +287,9 @@ sub channel_open { my ($self, $frame) = @_;
 	}
 }
 
-=head2 get_frame_type
-
-Takes the following parameters:
-
-=over 4
-
-=item * $frame - the L<Net::AMQP::Frame> instance
-
-=back
-
-Returns string representing type, typically the base class with Net::AMQP::Protocol prefix removed.
+=head2 conn_close
 
 =cut
-
-{ # We cache the lookups since they're unlikely to change during the application lifecycle
-my %types;
-sub get_frame_type {
-    my $self = shift;
-    my $frame = shift->method_frame;
-    my $ref = ref $frame;
-    return $types{$ref} if exists $types{$ref};
-    my $re = qr/^Net::AMQP::Protocol::([^:]+::[^:]+)$/;
-    my ($frame_type) = grep /$re/, Class::ISA::self_and_super_path($ref);
-    ($frame_type) = $frame_type =~ $re;
-    $types{$ref} = $frame_type;
-    return $frame_type;
-}
-}
 
 sub conn_close {
 	my ($self, $frame) = @_;

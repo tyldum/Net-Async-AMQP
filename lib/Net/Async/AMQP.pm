@@ -641,7 +641,7 @@ sub channel_by_id { my $self = shift; $self->{channel_by_id}{+shift} }
 
 =head2 next_pending
 
-Retrieves the next pending handler for the given incoming frame type (see L</get_frame_type>),
+Retrieves the next pending handler for the given incoming frame type (see L<Net::Async::AMQP::Utils/amqp_frame_type>),
 and calls it.
 
 Takes the following parameters:
@@ -922,7 +922,7 @@ Takes one or more of the following parameter pairs:
 
 =over 4
 
-=item * $type - the frame type, see L</get_frame_type>
+=item * $type - the frame type, see L<Net::Async::AMQP::Utils/amqp_frame_type>
 
 =item * $code - the coderef to call, will be invoked once as follows when a matching frame is received:
 
@@ -979,39 +979,6 @@ sub write {
 	$self
 }
 
-=head2 get_frame_type
-
-Takes the following parameters:
-
-=over 4
-
-=item * $frame - the L<Net::AMQP::Frame> instance
-
-=back
-
-Returns string representing type, typically the base class with Net::AMQP::Protocol prefix removed.
-
-=cut
-
-{ # We cache the lookups since they're unlikely to change during the application lifecycle
-my %types;
-sub get_frame_type {
-	my ($self, $raw_frame) = @_;
-	return 'Heartbeat' if $raw_frame->isa('Net::AMQP::Frame::Heartbeat');
-	return 'Header' if $raw_frame->isa('Net::AMQP::Frame::Header');
-	return 'Body' if $raw_frame->isa('Net::AMQP::Frame::Body');
-
-	my $frame = $raw_frame->method_frame;
-	my $ref = ref $frame;
-	return $types{$ref} if exists $types{$ref};
-	my $re = qr/^Net::AMQP::Protocol::([^:]+::[^:]+)$/;
-	my ($frame_type) = grep /$re/, Class::ISA::self_and_super_path($ref);
-	($frame_type) = $frame_type =~ $re;
-	$types{$ref} = $frame_type;
-	return $frame_type;
-}
-}
-
 =head2 process_frame
 
 Process a single incoming frame.
@@ -1031,7 +998,7 @@ Returns $self.
 sub process_frame {
 	my ($self, $frame) = @_;
 
-	my $frame_type = $self->get_frame_type($frame);
+	my $frame_type = amqp_frame_type($frame);
 
 	if($frame_type eq 'Heartbeat') {
 		# Ignore these completely. Since we have the last frame update at the data-read
