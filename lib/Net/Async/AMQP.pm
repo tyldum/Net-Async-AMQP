@@ -174,6 +174,8 @@ Set up variables. Takes the following optional named parameters:
 =item * heartbeat_interval - (optional) interval between heartbeat messages,
 default is set by the L</HEARTBEAT_INTERVAL> constant
 
+=item * max_channels - how many channels to allow on this connection
+
 =back
 
 Returns the new instance.
@@ -182,7 +184,7 @@ Returns the new instance.
 
 sub configure {
 	my ($self, %args) = @_;
-	for (qw(heartbeat_interval)) {
+	for (qw(heartbeat_interval max_channels)) {
 		$self->{$_} = delete $args{$_} if exists $args{$_}
 	}
 	$self->SUPER::configure(%args)
@@ -423,7 +425,7 @@ sub setup_tuning {
 			my $method_frame = $frame->method_frame;
 			# Lowest value for frame max wins - our predef constant, or whatever the server suggests
 			$self->frame_max(my $frame_max = min $method_frame->frame_max, $self->MAX_FRAME_SIZE);
-			$self->channel_max(my $channel_max = $method_frame->channel_max || $self->channel_max || $self->MAX_CHANNELS);
+			$self->channel_max(my $channel_max = $method_frame->channel_max || $self->max_channels || $self->MAX_CHANNELS);
 			$self->debug_printf("Remote says %d channels, will use %d", $method_frame->channel_max, $channel_max);
 			$self->{channel} = 0;
 			$self->send_frame(
@@ -740,11 +742,13 @@ Maximum number of channels. This is whatever we ended up with after initial nego
 
 sub channel_max {
 	my $self = shift;
-	return $self->{channel_max} ||= $self->MAX_CHANNELS unless @_;
+	return $self->{channel_max} ||= $self->{max_channels} || $self->MAX_CHANNELS unless @_;
 
 	$self->{channel_max} = shift;
 	$self
 }
+
+sub max_channels { shift->{max_channels} }
 
 =head2 last_frame_time
 
