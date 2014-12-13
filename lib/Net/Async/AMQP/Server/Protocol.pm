@@ -221,8 +221,7 @@ sub connection_open {
 	);
 }
 
-sub channel_open {
-	my ($self, $frame) = @_;
+sub channel_open { my ($self, $frame) = @_;
     $self->push_pending(
         'Channel::Open' => $self->can('channel_open'),
 	);
