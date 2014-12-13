@@ -305,11 +305,15 @@ sub conn_close {
 	);
 }
 
+=head2 debug_printf
+
+=cut
+
 sub debug_printf {
 	my ($self, $fmt, @args) = @_;
 	# strip CR/LF/FF
 	$fmt =~ s/\v+/ /g;
-	printf "$fmt\n" => @args;
+	warn sprintf "$fmt\n" => @args;
 	$self
 }
 
