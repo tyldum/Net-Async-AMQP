@@ -49,16 +49,18 @@ sub on_read {
 	$self->debug_printf("MQ connection - read %s", $$buffer);
 
 	$self->{read_handler} ||= $self->protocol->can('on_read');
-	my $code = $self->{read_handler}->(
-		$self->protocol,
-		$buffer,
-		$eof
-	);
-	return $code unless ref $code;
+	while(1) {
+		my $code = $self->{read_handler}->(
+			$self->protocol,
+			$buffer,
+			$eof
+		);
+		return $code unless ref $code;
 
-	# Replace our read handler if necessary
-	$self->{read_handler} = $code;
-	0
+		# Replace our read handler if necessary
+		$self->{read_handler} = $code;
+	}
+	die "unreachable"
 }
 
 1;
