@@ -114,7 +114,12 @@ sub _add_to_loop {
 
 sub on_accept {
 	my ($self, $sock) = @_;
-	$self->debug_printf("Incoming: $sock");
+	{
+		my $host = $sock->peerhost;
+		my $port = $sock->peerport;
+		$self->debug_printf("New connection from %s:%d", $host, $port);
+	}
+
 	my $stream = Net::Async::AMQP::Server::Connection->new(
 		handle => $sock,
 	);
