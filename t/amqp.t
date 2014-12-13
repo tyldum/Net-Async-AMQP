@@ -17,6 +17,15 @@ subtest 'spec handling' => sub {
 	done_testing;
 };
 
+subtest 'header' => sub {
+	my $header = Net::Async::AMQP->header_bytes;
+	my ($amqp, $id, $major, $minor, $patch) = unpack 'A4C1C1C1C1', $header;
+	is($amqp, 'AMQP', 'header bytes start with AMQP');
+	is($id, 0, 'protocol ID 0');
+	my $ver = join '.', $major, $minor, $patch;
+	cmp_ok(version->parse('0.9.1'), '<=', version->parse($ver), 'header requests at least 0.9.1');
+};
+
 subtest 'channel IDs' => sub {
 	# The full number of channels can take a while to process the tests, so first we check
 	# that we have the right number in the 'constant':
