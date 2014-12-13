@@ -108,6 +108,7 @@ use constant HEARTBEAT_INTERVAL    => $ENV{PERL_AMQP_HEARTBEAT_INTERVAL} // 0;
 
 use Net::Async::AMQP::Channel;
 use Net::Async::AMQP::Queue;
+use Net::Async::AMQP::Utils;
 
 =head1 PACKAGE VARIABLES
 

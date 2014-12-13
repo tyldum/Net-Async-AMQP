@@ -28,7 +28,7 @@ sub amqp_frame_info($) {
 	my ($frame) = @_;
 	my $txt = amqp_frame_type($frame);
 	if($frame->can('method_frame') && (my $method_frame = $frame->method_frame)) {
-		note($_) for 
+		#note($_);
 	} else {
 
 	}

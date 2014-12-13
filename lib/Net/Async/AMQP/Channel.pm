@@ -48,7 +48,7 @@ use Data::Dumper;
 use Scalar::Util qw(weaken);
 
 use Net::Async::AMQP;
-use constant DEBUG => Net::Async::AMQP->DEBUG;
+use Net::Async::AMQP::Utils;
 
 use overload
 	'""' => sub { shift->as_string },
@@ -490,7 +490,7 @@ sub remove_pending {
 
 =head2 next_pending
 
-Retrieves the next pending handler for the given incoming frame type (see L</get_frame_type>),
+Retrieves the next pending handler for the given incoming frame type (see L<Net::Async::AMQP::Utils/amqp_frame_type>),
 and calls it.
 
 Takes the following parameters:
@@ -544,7 +544,7 @@ sub next_pending {
 	}
 
 	return $self unless $frame->can('method_frame') && (my $method_frame = $frame->method_frame);
-	my $type = $self->amqp->get_frame_type($frame);
+	my $type = amqp_frame_type($frame);
 	if($type eq 'Basic::CancelOk') {
 		my ($ctag) = ($method_frame->consumer_tag);
 		$self->debug_printf("Cancel $ctag");
