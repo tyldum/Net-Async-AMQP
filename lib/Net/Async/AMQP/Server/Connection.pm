@@ -5,18 +5,44 @@ use warnings;
 
 use parent qw(IO::Async::Stream);
 
+=head1 NAME
+
+Net::Async::AMQP::Server::Connection
+
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=cut
 
 use curry;
 use Net::Async::AMQP;
 use Net::Async::AMQP::Server::Protocol;
 
+=head1 METHODS
+
+=cut
+
+=head2 protocol
+
+Returns the L<Net::Async::AMQP::Server::Protocol> instance, creating a new one if necessary.
+
+=cut
+
 sub protocol {
 	my $self = shift;
 	$self->{protocol} ||= Net::Async::AMQP::Server::Protocol->new(
-		write => $self->curry::weak::write,
+		write          => $self->curry::weak::write,
 		future_factory => $self->loop->curry::weak::new_future,
 	)
 }
+
+=head2 on_read
+
+Handle incoming data by passing through to the
+protocol instance.
+
+=cut
 
 sub on_read {
 	my ($self, $buffer, $eof) = @_;
@@ -25,3 +51,18 @@ sub on_read {
 }
 
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Tom Molesworth <cpan@perlsite.co.uk>
+
+=head1 LICENSE
+
+Licensed under the same terms as Perl itself, with additional licensing
+terms for the MQ spec to be found in C<share/amqp0-9-1.extended.xml>
+('a worldwide, perpetual, royalty-free, nontransferable, nonexclusive
+license to (i) copy, display, distribute and implement the Advanced
+Messaging Queue Protocol ("AMQP") Specification').
+
