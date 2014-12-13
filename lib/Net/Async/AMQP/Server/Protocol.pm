@@ -204,6 +204,14 @@ sub tune_ok {
 	$self->debug_printf("Max size:  " . $method_frame->frame_max);
 	$self->debug_printf("Heartbeat: " . $method_frame->heartbeat);
     $self->push_pending(
+        'Connection::Open' => $self->can('connection_open'),
+        # 'Channel::Open' => $self->can('channel_open'),
+	);
+}
+
+sub connection_open {
+	my ($self, $frame) = @_;
+    $self->push_pending(
         'Channel::Open' => $self->can('channel_open'),
 	);
 	$self->send_frame(
