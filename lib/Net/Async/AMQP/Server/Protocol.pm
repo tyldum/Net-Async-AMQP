@@ -3,26 +3,37 @@ package Net::Async::AMQP::Server::Protocol;
 use strict;
 use warnings;
 
-use parent qw(IO::Async::Notifier);
+=head1 NAME
 
-sub new { my ($class) = shift; bless { @_ }, $class }
+Net::Async::AMQP::Server::Protocol
 
-# use parent qw(Net::Async::AMQP);
+=head1 SYNOPSIS
+
+=head1 DESCRIPTION
+
+=cut
+
+use curry;
+
+sub new {
+	my $class = shift;
+	my $self = bless { @_ }, $class;
+}
 
 sub write { my $self = shift; $self->{write}->(@_) }
 
 sub on_read {
 	my ($self, $buffer, $eof) = @_;
 	return 0 unless length $$buffer >= length Net::AMQP::Protocol->header;
+
 	$self->{initial_header} = substr $$buffer, 0, length Net::AMQP::Protocol->header, '';
 	my ($proto, $version) = $self->{initial_header} =~ /^(AMQP)(....)/ or die "Invalid header received: " . sprintf "%v02x", $self->{initial_header};
 	$self->debug_printf("Protocol $proto, version " . join '.', sprintf '%08x', unpack 'N1', $version);
-	$self->curry::weak::startup;
+	$self->can('startup');
 }
 
 sub startup {
-	my ($self, $stream, $buffer, $eof) = @_;
-	$self->debug_printf("In startup: @_");
+	my ($self, $buffer, $eof) = @_;
 	my $frame = Net::AMQP::Frame::Method->new(
 		channel => 0,
 		method_frame => Net::AMQP::Protocol::Connection::Start->new(
@@ -39,7 +50,7 @@ sub startup {
         'Connection::StartOk' => $self->can('start_ok'),
         'Connection::Close'   => $self->can('conn_close'),
 	);
-	$self->curry::weak::conn_start;
+	$self->can('conn_start');
 }
 
 sub push_pending {
@@ -50,6 +61,7 @@ sub push_pending {
     }
     return $self;
 }
+
 sub remove_pending {
 	my $self = shift;
     while(@_) {
@@ -65,6 +77,7 @@ sub remove_pending {
     }
     return $self;
 }
+
 sub next_pending {
     my ($self, $type, $frame) = @_;
     $self->debug_printf("Check next pending for %s", $type);
@@ -125,7 +138,7 @@ sub process_frame {
 use Data::Dumper;
 
 sub conn_start {
-	my ($self, $stream, $buffer, $eof) = @_;
+	my ($self, $buffer, $eof) = @_;
 	$self->debug_printf("Have " . length($$buffer) . " bytes of post-connect data");
 	for my $frame (Net::AMQP->parse_raw_frames($buffer)) {
 		$self->debug_printf(":: Frame $frame" . Dumper($frame));
@@ -172,6 +185,7 @@ sub send_frame {
     $self->write($data);
     $self;
 }
+
 sub bus { $_[0]->{bus} ||= Mixin::Event::Dispatch::Bus->new }
 
 sub frame_max {
@@ -181,6 +195,7 @@ sub frame_max {
     $self->{frame_max} = shift;
     $self
 }
+
 sub tune_ok {
 	my ($self, $frame) = @_;
 	$self->debug_printf("Tune okay:");
@@ -258,6 +273,14 @@ sub conn_close {
 		Net::AMQP::Protocol::Connection::CloseOk->new(
 		)
 	);
+}
+
+sub debug_printf {
+	my ($self, $fmt, @args) = @_;
+	# strip CR/LF/FF
+	$fmt =~ s/\v+/ /g;
+	printf "$fmt\n" => @args;
+	$self
 }
 
 1;

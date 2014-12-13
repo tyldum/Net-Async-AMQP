@@ -47,7 +47,18 @@ protocol instance.
 sub on_read {
 	my ($self, $buffer, $eof) = @_;
 	$self->debug_printf("MQ connection - read %s", $$buffer);
-	return $self->protocol->on_read($buffer, $eof);
+
+	$self->{read_handler} ||= $self->protocol->can('on_read');
+	my $code = $self->{read_handler}->(
+		$self->protocol,
+		$buffer,
+		$eof
+	);
+	return $code unless ref $code;
+
+	# Replace our read handler if necessary
+	$self->{read_handler} = $code;
+	0
 }
 
 1;
