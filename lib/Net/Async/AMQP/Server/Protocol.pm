@@ -238,6 +238,18 @@ sub channel_open {
 		);
 
 	}
+
+	{
+		my $frame = Net::AMQP::Frame::Method->new(
+			channel => $id,
+			method_frame => Net::AMQP::Protocol::Channel::OpenOk->new(
+				reserved_1 => '',
+			)
+		);
+		$self->send_frame(
+			$frame
+		);
+	}
 }
 
 =head2 get_frame_type
