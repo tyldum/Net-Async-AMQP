@@ -45,6 +45,7 @@ use Class::ISA ();
 use List::Util qw(min);
 use List::UtilsBy qw(extract_by);
 use File::ShareDir ();
+use Time::HiRes ();
 use Scalar::Util qw(weaken);
 use Mixin::Event::Dispatch::Bus;
 
@@ -175,7 +176,8 @@ Set up variables. Takes the following optional named parameters:
 =item * heartbeat_interval - (optional) interval between heartbeat messages,
 default is set by the L</HEARTBEAT_INTERVAL> constant
 
-=item * max_channels - how many channels to allow on this connection
+=item * max_channels - how many channels to allow on this connection,
+default is defined by the L</MAX_CHANNELS> constant
 
 =back
 
@@ -262,7 +264,7 @@ sub connect {
 	$loop->connect(
 		host     => $self->{host},
 		# local_host can be used to send from a different source address,
-		# sometimes useful for routing purposes
+		# sometimes useful for routing purposes or loadtesting
 		(exists $args{local_host} ? (local_host => $args{local_host}) : ()),
 		service  => $self->{port},
 		socktype => 'stream',
@@ -274,6 +276,14 @@ sub connect {
 	);
 	$f;
 }
+
+=head2 on_stream
+
+Called once the underlying TCP connection has been established.
+
+Returns nothing of importance.
+
+=cut
 
 sub on_stream {
 	my ($self, $args, $stream) = @_;
@@ -308,6 +318,12 @@ sub dump_frame {
 	}
 }
 
+=head2 on_read
+
+Called whenever there's data available to be read.
+
+=cut
+
 sub on_read {
 	my ($self, $stream, $buffref, $eof) = @_;
 	# Frame dumping support - not that useful yet, so it's disabled
@@ -327,13 +343,19 @@ sub on_read {
 		$self->debug_printf("At EOF") if $eof;
 	}
 
-	$self->last_frame_time($self->loop->time);
+	$self->last_frame_time(Time::HiRes::time);
 
 	# As each frame is parsed it will be removed from the buffer
 	$self->process_frame($_) for Net::AMQP->parse_raw_frames($buffref);
 	$self->on_closed if $eof;
 	return 0;
 }
+
+=head2 on_closed
+
+Called when the TCP connection is closed.
+
+=cut
 
 sub on_closed {
 	my $self = shift;
@@ -343,7 +365,7 @@ sub on_closed {
 	for my $ch (values %{$self->{channel_by_id}}) {
 		$ch->bus->invoke_event(
 			'close',
-			code    => 999,
+			# code    => 999,
 			message => 'Connection closed: ' . $reason,
 		);
 		$self->channel_closed($ch->id);
@@ -351,6 +373,7 @@ sub on_closed {
 
 	# Clean up any mismatching entries in the Future map
 	$_->cancel for grep !$_->is_ready, values %{$self->{channel_map}};
+	$self->{channel_map} = {};
 
 	$self->stream->close if $self->stream;
 	$self->bus->invoke_event(close => $reason)
@@ -358,7 +381,7 @@ sub on_closed {
 
 =head2 post_connect
 
-Sends initial startup header and applies listener for the Connection::Start message.
+Sends initial startup header and applies listener for the C< Connection::Start > message.
 
 Returns $self.
 
@@ -369,10 +392,10 @@ sub post_connect {
 	my %args = @_;
 
 	my %client_prop = (
-		platform    => 'Perl/NetAsyncAMQP',
-		product     => __PACKAGE__,
+		platform    => $args{platform} // 'Perl/NetAsyncAMQP',
+		product     => $args{product} // __PACKAGE__,
 		information => $args{information} // 'http://search.cpan.org/perldoc?Net::Async::AMQP',
-		version     => $VERSION,
+		version     => $args{version} // $VERSION,
 		($args{client_properties} ? %{$args{client_properties}} : ()),
 	);
 
@@ -1207,6 +1230,8 @@ If we receive an unsolicited frame from the server this event will be raised:
 
 =item * L<Net::AMQP> - this does all the hard work of converting the XML protocol
 specification into appropriate Perl methods and classes.
+
+=item * L<Net::RabbitMQ> - probably bindings for librabbitmq
 
 =item * L<Net::AMQP::RabbitMQ> - librabbitmq support
 
