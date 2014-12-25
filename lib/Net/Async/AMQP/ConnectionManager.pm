@@ -445,6 +445,17 @@ sub release_connection {
 	push @{$self->{available_connections}}, $mq;
 }
 
+sub connection_count {
+	my ($self) = @_;
+	@{$self->{available_connections}} + @{$self->{full_connections}}
+}
+
+sub _add_to_loop {
+	my ($self, $loop) = @_;
+	$self->{available_connections} ||= [];
+	$self->{full_connections} ||= [];
+}
+
 sub shutdown {
 	my $self = shift;
 	$self->debug_printf("Shutdown started");
