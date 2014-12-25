@@ -322,6 +322,7 @@ sub connect {
 		my $amqp = Net::Async::AMQP->new
 	);
 	$amqp->configure(heartbeat_interval => delete $args{heartbeat}) if exists $args{heartbeat};
+	$amqp->configure(max_channels => delete $args{max_channels}) if exists $args{max_channels};
 	$args{port} ||= 5672;
 	$amqp->connect(
 		%args
