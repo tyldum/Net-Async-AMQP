@@ -84,6 +84,35 @@ sub queue_declare {
 	)
 }
 
+=head2 confirm_mode
+
+Don't allow this. If we want a confirm-mode-channel, it has to be assigned by passing
+the appropriate request to the connection manager.
+
+Without this we run the risk of burning through channels, for example:
+
+=over 4
+
+=item * Assign a channel with no options
+
+=item * Enable confirm mode on that channel
+
+=item * Release the channel
+
+=item * Repeat
+
+=back
+
+This would eventually cause all available channels to end up in the "confirm mode"
+available pool.
+
+=cut
+
+sub confirm_mode {
+	my ($self) = @_;
+	die "Cannot apply confirm mode to an existing channel";
+}
+
 =head2 channel
 
 Returns the underlying AMQP channel.
