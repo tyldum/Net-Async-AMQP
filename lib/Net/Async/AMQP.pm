@@ -34,6 +34,44 @@ something that has been around for longer.
 If you want a higher-level API which manages channels and connections, try
 L<Net::Async::AMQP::ConnectionManager>.
 
+=head2 AMQP support
+
+The following AMQP features are supported:
+
+=over 4
+
+=item * Queue declare, bind, delete
+
+=item * Exchange declare, delete
+
+=item * Consumer setup and cancellation
+
+=back
+
+=head2 RabbitMQ-specific features
+
+RabbitMQ provides some additional features:
+
+=over 4
+
+=item * Exchange-to-exchange binding
+
+=item * Server flow control notification
+
+=item * Consumer cancellation notification
+
+=back
+
+=head2 Missing features
+
+=over 4
+
+=item * Transactions
+
+=item * Flow control
+
+=back
+
 =cut
 
 use Net::AMQP;
