@@ -195,9 +195,11 @@ sub DESTROY {
 	my $cleanup = delete $self->{cleanup};
 	$f = (
 		fmap_void {
-			$_ ? $_->($self) : Future->wrap
+			my $k = shift;
+			my $task = delete $cleanup->{$k};
+			$task ? $task->($self) : Future->wrap
 		} foreach => [
-			sort values %$cleanup
+			sort keys %$cleanup
 		]
 	)->on_ready(sub {
 		my $conman = delete $self->{manager};
