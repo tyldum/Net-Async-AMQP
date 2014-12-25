@@ -48,6 +48,7 @@ use Future;
 use Future::Utils qw(call try_repeat fmap_void);
 
 use Time::HiRes ();
+use Scalar::Util ();
 use List::UtilsBy ();
 
 use Net::Async::AMQP;
@@ -339,7 +340,7 @@ sub mark_connection_full {
 	my ($self, $mq) = @_;
 	# Drop this from the available connection list
 	List::UtilsBy::extract_by {
-		refaddr($_) == refaddr($mq)
+		Scalar::Util::refaddr($_) == Scalar::Util::refaddr($mq)
 	} @{ $self->{available_connections} };
 	$self
 }
@@ -368,7 +369,9 @@ sub on_channel_close {
 	push @{$self->{closed_channel}}, [ $amqp, $ch->id ];
 	# Add this MQ connection back to the available
 	# list, since it now has spare channels
-	push @{$self->{available_connections}}, $amqp unless grep { refaddr($_) == refaddr($amqp) } @{$self->{available_connections}};
+	push @{$self->{available_connections}}, $amqp unless grep {
+		Scalar::Util::refaddr($_) == Scalar::Util::refaddr($amqp)
+	} @{$self->{available_connections}};
 }
 
 =head2 release_channel
