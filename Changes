@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.014     2014-12-25 14:31:23+00:00 Europe/London
 	New features:
 	* Support max_channels in connection manager
 	* When requesting a channel, attempt a new connection if all existing connections
