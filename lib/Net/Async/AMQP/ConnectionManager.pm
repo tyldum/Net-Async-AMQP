@@ -160,7 +160,7 @@ sub request_channel {
 
 					# No spare IDs, so record this to avoid hitting this MQ connection
 					# on the next request as well
-					$self->mark_connection_full($mq);
+					$self->mark_connection_full($mq->amqp);
 
 					# We can safely fail at this point, since we're in a loop and the
 					# next iteration should get a new MQ connection to try with
@@ -290,7 +290,7 @@ sub request_connection {
 				amqp    => $mq,
 				manager => $self,
 			);
-			push @{$self->{available_connections}}, $conn;
+			push @{$self->{available_connections}}, $mq;
 			$conn
 		}
 	)->set_label(
