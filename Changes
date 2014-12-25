@@ -1,6 +1,10 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	New features:
+	* Support max_channels in connection manager
+	* When requesting a channel, attempt a new connection if all existing connections
+	are full (was only partially implemented previously)
 
 0.013     2014-12-25 11:33:37+00:00 Europe/London
 	This release raises the minimum Perl version requirement to 5.14,
