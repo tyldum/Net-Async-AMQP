@@ -9,6 +9,8 @@ Net::Async::AMQP::ConnectionManager::Channel - channel proxy object
 
 =cut
 
+use Time::HiRes ();
+
 use Future::Utils qw(fmap_void);
 
 use overload
@@ -29,12 +31,15 @@ sub new {
 	my $class = shift;
 	my $self = bless { @_ }, $class;
 	Scalar::Util::weaken($_) for @{$self}{qw(manager channel)};
+
+	# ->bus proxies to L<Net::Async::Channel/bus> via AUTOLOAD
 	$self->bus->subscribe_to_event(
 		my @ev = (
 			listener_start => $self->curry::weak::_listener_start,
 			listener_stop  => $self->curry::weak::_listener_stop,
 		)
 	);
+
 	$self->{cleanup}{events} = sub {
 		shift->bus->unsubscribe_from_event(@ev);
 		Future->wrap;
@@ -134,6 +139,8 @@ sub confirm_mode {
 	die "Cannot apply confirm mode to an existing channel";
 }
 
+sub last_call { shift->{last_call} }
+
 =head2 channel
 
 Returns the underlying AMQP channel.
@@ -175,6 +182,8 @@ any trailing consumers, for example. These are held in the cleanup hash.
 
 sub DESTROY {
 	my $self = shift;
+	return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+
 	unless($self->{cleanup}) {
 		my $conman = delete $self->{manager};
 		my $ch = delete $self->{channel};
@@ -215,6 +224,7 @@ sub AUTOLOAD {
 
 	my $code = sub {
 		my $self = shift;
+		$self->{last_call} = Time::HiRes::time;
 		$self->channel->$method(@_);
 	};
 	{ no strict 'refs'; *$method = $code }
