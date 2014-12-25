@@ -7,11 +7,13 @@ use parent qw(Exporter);
 
 =head1 NAME
 
-Net::Async::AMQP::Server::Exchange
+Net::Async::AMQP::Utils
 
 =head1 SYNOPSIS
 
 =head1 DESCRIPTION
+
+All functions are imported by default.
 
 =cut
 
@@ -21,6 +23,8 @@ our @EXPORT_OK = our @EXPORT = qw(
 );
 
 =head2 amqp_frame_info
+
+Returns a string with information about the given AMQP frame.
 
 =cut
 

@@ -74,16 +74,16 @@ We also maintain lists:
 
 Highest-assigned ID is also recorded per connection.
 
-if(have unassigned) {
-	return shift unassigned
-} elsif(have closed) {
-	my $closed = shift closed;
-	return $closed->{mq}->open_channel($closed->{id})
-} elsif(my $next_id = $mq->next_id) {
-	return $mq->open_channel($next_id)
-} else {
-
-}
+ if(have unassigned) {
+ 	return shift unassigned
+ } elsif(have closed) {
+ 	my $closed = shift closed;
+ 	return $closed->{mq}->open_channel($closed->{id})
+ } elsif(my $next_id = $mq->next_id) {
+ 	return $mq->open_channel($next_id)
+ } else {
+ 
+ }
 
 Calling methods on the channel proxy will establish
 a cycle for the duration of the pending request.

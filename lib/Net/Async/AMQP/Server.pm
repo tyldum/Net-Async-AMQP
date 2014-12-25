@@ -20,10 +20,6 @@ use IO::Socket::IP;
 
 use Net::Async::AMQP::Server::Connection;
 
-=pod
-
-=cut
-
 =head2 configure
 
 Set up the instance.
@@ -73,6 +69,10 @@ sub listening {
 	$self->{listening} ||= $self->loop->new_future
 }
 
+=head2 notifier_name
+
+=cut
+
 sub notifier_name {
 	my $self = shift;
 	'NaAMQPServer=' . join ':', $self->local_host, $self->port
@@ -95,6 +95,10 @@ sub on_listen {
 	)
 }
 
+=head2 _add_to_loop
+
+=cut
+
 sub _add_to_loop {
 	my ($self, $loop) = @_;
 	$self->SUPER::_add_to_loop($loop);
@@ -111,6 +115,10 @@ sub _add_to_loop {
 		})
 	)
 }
+
+=head2 on_accept
+
+=cut
 
 sub on_accept {
 	my ($self, $sock) = @_;
