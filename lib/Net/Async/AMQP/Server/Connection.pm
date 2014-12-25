@@ -16,6 +16,7 @@ Net::Async::AMQP::Server::Connection
 =cut
 
 use curry;
+
 use Net::Async::AMQP;
 use Net::Async::AMQP::Server::Protocol;
 

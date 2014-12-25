@@ -183,6 +183,10 @@ sub conn_start {
 	0;
 }
 
+=head2 start_ok
+
+=cut
+
 sub start_ok {
 	my ($self, $frame) = @_;
 	$self->debug_printf("Start okay:\n");
@@ -202,7 +206,15 @@ sub start_ok {
 	);
 }
 
+=head2 heartbeat_interval
+
+=cut
+
 sub heartbeat_interval { shift->{heartbeat_interval} //= 0 }
+
+=head2 send_frame
+
+=cut
 
 sub send_frame {
     my $self = shift;
@@ -212,17 +224,23 @@ sub send_frame {
     # Apply defaults and wrap as required
     $frame = $frame->frame_wrap if $frame->isa("Net::AMQP::Protocol::Base");
     $frame->channel($args{channel} // 0) unless defined $frame->channel;
-#    warn "Sending frame " . Dumper($frame) if DEBUG;
 
     # Get bytes to send across our transport
     my $data = $frame->to_raw_frame;
-
-#    warn "Sending data: " . Dumper($frame) . "\n";
     $self->write($data);
+
     $self;
 }
 
+=head2 bus
+
+=cut
+
 sub bus { $_[0]->{bus} ||= Mixin::Event::Dispatch::Bus->new }
+
+=head2 frame_max
+
+=cut
 
 sub frame_max {
     my $self = shift;
@@ -231,6 +249,10 @@ sub frame_max {
     $self->{frame_max} = shift;
     $self
 }
+
+=head2 tune_ok
+
+=cut
 
 sub tune_ok {
 	my ($self, $frame) = @_;
@@ -245,6 +267,10 @@ sub tune_ok {
 	);
 }
 
+=head2 connection_open
+
+=cut
+
 sub connection_open {
 	my ($self, $frame) = @_;
     $self->push_pending(
@@ -257,7 +283,12 @@ sub connection_open {
 	);
 }
 
-sub channel_open { my ($self, $frame) = @_;
+=head2 channel_open
+
+=cut
+
+sub channel_open {
+	my ($self, $frame) = @_;
     $self->push_pending(
         'Channel::Open' => $self->can('channel_open'),
 	);
@@ -313,7 +344,7 @@ sub debug_printf {
 	my ($self, $fmt, @args) = @_;
 	# strip CR/LF/FF
 	$fmt =~ s/\v+/ /g;
-	warn sprintf "$fmt\n" => @args;
+	# warn sprintf "$fmt\n" => @args;
 	$self
 }
 
