@@ -70,6 +70,14 @@ $cm->request_channel->then(sub {
 		push @ch, $cm->request_channel->get;
 	}
 	is($cm->connection_count, 3, 'assign more channels, now have three connections');
+	{
+		my %id;
+		++$id{$_->id} for @ch;
+		ok(
+			(grep { $_ > 1 } values %id),
+			'channel IDs are not all unique'
+		);
+	}
 	@ch = ();
 	is($cm->connection_count, 3, 'still 3 connections after releasing all channels');
 	for(1..16) {
