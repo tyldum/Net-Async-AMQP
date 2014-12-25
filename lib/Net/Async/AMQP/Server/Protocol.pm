@@ -56,8 +56,8 @@ sub startup {
 		method_frame => Net::AMQP::Protocol::Connection::Start->new(
 			server_properties => {
 			},
-			mechanisms        => 'AMQPLAIN',
-			locale            => 'en_GB',
+			mechanisms        => $self->auth_mechanisms,
+			locale            => $self->locale,
 		),
 	);
     $frame = $frame->frame_wrap if $frame->isa("Net::AMQP::Protocol::Base");
@@ -69,6 +69,10 @@ sub startup {
 	);
 	$self->can('conn_start');
 }
+
+sub auth_mechanisms { 'AMQPLAIN' }
+
+sub locale { 'en_GB' }
 
 =head2 push_pending
 
