@@ -1,6 +1,9 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	This release raises the minimum Perl version requirement to 5.14,
+	for the ${^GLOBAL_PHASE} variable.
+
 	New features:
 	* Support reusing closed channel IDs by default in Net::Async::AMQP
 	* Remove connection from available pool when no channels are available
