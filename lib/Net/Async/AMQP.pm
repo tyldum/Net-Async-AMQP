@@ -126,15 +126,6 @@ value.
 
 use constant MAX_CHANNELS          => 65535;
 
-=head2 DEBUG
-
-Debugging flag - set C<PERL_AMQP_DEBUG> to 1 in the environment to enable
-informational messages to STDERR.
-
-=cut
-
-use constant DEBUG                 => $ENV{PERL_AMQP_DEBUG} // 0;
-
 =head2 HEARTBEAT_INTERVAL
 
 Interval in seconds between heartbeat frames, zero to disable. Can be
@@ -1180,7 +1171,6 @@ sub send_frame {
 		if defined $frame->channel && defined $args{channel} && $frame->channel != $args{channel};
 
 	$frame->channel($args{channel} // 0) unless defined $frame->channel;
-#    warn "Sending frame " . Dumper($frame) if DEBUG;
 
 	# Get bytes to send across our transport
 	my $data = $frame->to_raw_frame;
