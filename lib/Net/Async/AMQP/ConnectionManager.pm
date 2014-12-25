@@ -439,10 +439,17 @@ sub queue {
 	});
 }
 
+=head2 release_connection
+
+Releases a connection.
+
+Doesn't really do anything.
+
+=cut
+
 sub release_connection {
 	my ($self, $mq) = @_;
 	$self->debug_printf("Releasing connection %s", $mq);
-	push @{$self->{available_connections}}, $mq;
 }
 
 sub connection_count {
