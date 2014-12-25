@@ -3,6 +3,12 @@ Revision history for {{$dist->name}}
 {{$NEXT}}
 	New features:
 	* Support reusing closed channel IDs by default in Net::Async::AMQP
+	* Remove connection from available pool when no channels are available
+	* Hardcoded connection manager channel assignment retry count moved
+	to a method so that it's easier to override if required
+
+	Bugs fixed:
+	* Prevent ->confirm_mode on an existing ConnectionManager channel
 
 0.012     2014-12-11 11:04:10+00:00 Europe/London
 	No new features.
