@@ -61,7 +61,7 @@ $cm->request_channel->then(sub {
 	for(1..16) {
 		push @ch, $cm->request_channel->get;
 	}
-	is($cm->connection_count, 1, 'still only a single connection') or <>;
+	is($cm->connection_count, 1, 'still only a single connection');
 	is(exception {
 		push @ch, $cm->request_channel->get;
 	}, undef, 'can still assign channels after hitting limit'); 
