@@ -13,8 +13,9 @@ plan skip_all => 'set NET_ASYNC_AMQP_HOST/USER/PASS/VHOST env vars to test' unle
 my $loop = IO::Async::Loop->new;
 
 # Set up a connection manager with our MQ server details
-my $cm = Net::Async::AMQP::ConnectionManager->new;
-$loop->add($cm);
+$loop->add(
+	my $cm = Net::Async::AMQP::ConnectionManager->new
+);
 $cm->add(
   host  => $ENV{NET_ASYNC_AMQP_HOST},
   user  => $ENV{NET_ASYNC_AMQP_USER},
@@ -38,9 +39,21 @@ my @seen;
 		is($wch, undef, 'channel proxy has disappeared');
 		pass('succeeded')
 	});
-} foreach => [1..8], concurrent => 4)->then(sub {
-	$cm->shutdown;
-})->get;
+} foreach => [1..8], concurrent => 4)->get;
+
+note 'test for memory leak';
+no_growth {
+	$cm->request_channel->then(sub {
+		my $ch = shift;
+		fail("invalid channel") unless $ch->id;
+		$ch->exchange_declare(
+			exchange => 'test_exchange',
+			type     => 'fanout',
+		)
+	})->get
+} 'assign and release channels without leaking memory';
+
+$cm->shutdown->get;
 
 done_testing;
 
