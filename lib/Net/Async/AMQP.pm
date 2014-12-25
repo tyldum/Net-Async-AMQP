@@ -46,6 +46,12 @@ The following AMQP features are supported:
 
 =item * Consumer setup and cancellation
 
+=item * Message publishing
+
+=item * Explicit ACK
+
+=item * QoS
+
 =back
 
 =head2 RabbitMQ-specific features
