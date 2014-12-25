@@ -165,7 +165,7 @@ sub request_channel {
 					Future->fail(channel => 'no spare channels on connection');
 				}
 			});
-		} until => sub { shift->is_done || ++$count > 3 };
+		} until => sub { shift->is_done || ++$count > $self->channel_retry_count };
 	}
 
 	# Apply our QoS on the channel if we ever get one
@@ -191,6 +191,8 @@ sub request_channel {
 		}
 	);
 }
+
+sub channel_retry_count { 3 }
 
 =head2 apply_qos
 
