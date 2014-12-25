@@ -248,10 +248,9 @@ sub qos_prefetch_count {
 }
 
 sub qos_confirm_mode {
-	my ($self, $ch, $k, $v) = @_;
+	my ($self, $ch) = @_;
 	return $ch->confirm_mode(
-		$k => $v
-	)->set_label("Apply $k QoS");
+	)->set_label("Apply confirm_mode QoS");
 }
 
 =head2 request_connection
