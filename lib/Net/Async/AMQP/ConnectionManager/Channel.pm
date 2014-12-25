@@ -41,7 +41,7 @@ sub new {
 	);
 
 	$self->{cleanup}{events} = sub {
-		shift->bus->unsubscribe_from_event(@ev);
+		shift->bus->unsubscribe_from_event(splice @ev);
 		Future->wrap;
 	};
 	$self
