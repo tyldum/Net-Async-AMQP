@@ -176,20 +176,19 @@ any trailing consumers, for example. These are held in the cleanup hash.
 sub DESTROY {
 	my $self = shift;
 	unless($self->{cleanup}) {
-#		warn "Releasing $self without cleanup\n";
 		my $conman = delete $self->{manager};
 		my $ch = delete $self->{channel};
 		return unless $conman; # global destruct
 		return $conman->release_channel($ch);
 	}
 
-#	warn "Releasing $self\n";
 	my $f;
+	my $cleanup = delete $self->{cleanup};
 	$f = (
 		fmap_void {
 			$_ ? $_->($self) : Future->wrap
 		} foreach => [
-			sort values %{$self->{cleanup}}
+			sort values %$cleanup
 		]
 	)->on_ready(sub {
 		my $conman = delete $self->{manager};
