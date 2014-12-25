@@ -339,10 +339,19 @@ channels.
 sub mark_connection_full {
 	my ($self, $mq) = @_;
 	# Drop this from the available connection list
-	List::UtilsBy::extract_by {
-		Scalar::Util::refaddr($_) == Scalar::Util::refaddr($mq)
-	} @{ $self->{available_connections} };
+	push @{$self->{full_connections}}, $self->extract_conn(
+		$mq,
+		$self->{available_connections}
+	);
 	$self
+}
+
+sub extract_conn {
+	my ($self, $conn, $stash) = @_;
+	my @rslt = List::UtilsBy::extract_by {
+		Scalar::Util::refaddr($_) == Scalar::Util::refaddr($conn)
+	} @$stash;
+	@rslt
 }
 
 =head2 key_for_args
@@ -367,11 +376,13 @@ sub on_channel_close {
 	$self->debug_printf("channel closure: %s", join ' ', @_);
 	my $amqp = $ch->amqp or die "This channel (" . $ch->id . ") has no AMQP connection";
 	push @{$self->{closed_channel}}, [ $amqp, $ch->id ];
-	# Add this MQ connection back to the available
+
+	# If this connection was in the full list, add it back to the available
 	# list, since it now has spare channels
-	push @{$self->{available_connections}}, $amqp unless grep {
-		Scalar::Util::refaddr($_) == Scalar::Util::refaddr($amqp)
-	} @{$self->{available_connections}};
+	push @{$self->{available_connections}}, $self->extract_conn(
+		$amqp,
+		$self->{full_connections}
+	);
 }
 
 =head2 release_channel
