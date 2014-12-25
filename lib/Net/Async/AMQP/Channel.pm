@@ -552,6 +552,11 @@ sub next_pending {
 			'cancel',
 			ctag => $ctag,
 		);
+		# Also raise this as a "listener_stop"
+		# event, for managed channels
+		$self->bus->invoke_event(
+			listener_stop => $ctag
+		);
 	}
 
 	# Message delivery, part 3: The "Deliver" message.
