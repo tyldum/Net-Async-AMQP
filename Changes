@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.013     2014-12-25 11:33:37+00:00 Europe/London
 	This release raises the minimum Perl version requirement to 5.14,
 	for the ${^GLOBAL_PHASE} variable.
 
