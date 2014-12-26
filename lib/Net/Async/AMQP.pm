@@ -1094,6 +1094,40 @@ Takes the $payload as a scalar containing byte data, and the following parameter
 
 =back
 
+Additionally, the following headers can be passed:
+
+=over 4
+
+=item * content_type
+
+=item * content_encoding
+
+=item * headers
+
+=item * delivery_mode
+
+=item * priority
+
+=item * correlation_id
+
+=item * reply_to
+
+=item * expiration
+
+=item * message_id
+
+=item * timestamp
+
+=item * type
+
+=item * user_id
+
+=item * app_id
+
+=item * cluster_id
+
+=back
+
 Returns list of frames suitable for passing to L</send_frame>.
 
 =cut
