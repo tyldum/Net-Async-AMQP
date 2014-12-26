@@ -236,16 +236,6 @@ sub delete : method {
 
 __END__
 
-=head1 SEE ALSO
-
-=over 4
-
-=item * L<Net::AMQP>
-
-=item * L<AnyEvent::RabbitMQ>
-
-=back
-
 =head1 AUTHOR
 
 Tom Molesworth <cpan@perlsite.co.uk>
