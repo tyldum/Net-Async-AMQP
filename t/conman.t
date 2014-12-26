@@ -86,6 +86,55 @@ $cm->request_channel->then(sub {
 	is($cm->connection_count, 3, 'still 3 connections after assigning a full connection');
 }
 
+{ # Exchange-to-exchange binding
+	$cm->request_channel->then(sub {
+		my ($ch) = @_;
+		note 'Declaring queue and two exchanges';
+		Future->needs_all(
+			$ch->queue_declare(
+				queue => '',
+			),
+			$ch->exchange_declare(
+				exchange => 'test_source',
+				type     => 'fanout',
+			),
+			$ch->exchange_declare(
+				exchange => 'test_destination',
+				type     => 'fanout',
+			),
+		)->then(sub {
+			my ($q) = @_;
+			note 'Binding queue and exchanges';
+			Future->needs_all(
+				$q->bind_exchange(
+					exchange => 'test_destination',
+					routing_key => '#',
+				),
+				$ch->exchange_bind(
+					source      => 'test_source',
+					destination => 'test_destination',
+					routing_key => '#',
+				),
+			)
+		})->then(sub {
+			my ($q) = @_;
+			note 'Starting queue consumer';
+			$q->listen
+		})->then(sub {
+			my ($q, $ctag) = @_;
+			note 'ctag is ' . $ctag;
+			$ch->publish(
+				exchange => 'test_source',
+				routing_key => 'xxx',
+				type => 'some_type',
+			)->transform(done => sub { $q })
+		})->then(sub {
+			my ($q) = @_;
+			note 'Published message'
+		})
+	})->get
+}
+
 $cm->shutdown->get;
 
 done_testing;
