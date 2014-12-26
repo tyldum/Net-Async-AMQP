@@ -74,6 +74,8 @@ RabbitMQ provides some additional features:
 
 =item * Flow control
 
+=item * SASL auth
+
 =back
 
 =cut
