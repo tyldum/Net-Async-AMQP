@@ -185,7 +185,7 @@ BEGIN {
 =head1 %CONNECTION_DEFAULTS
 
 The default parameters to use for L</connect>. Changing these values is permitted,
-but do not attempt to delete or add any entries from the hash.
+but do not attempt to delete from or add any entries to the hash.
 
 Passing parameters directly to L</connect> is much safer, please do that instead.
 
