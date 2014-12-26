@@ -1,6 +1,14 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	New features:
+	* Support exchange-to-exchange binding (RabbitMQ-specific feature)
+
+	Bugs fixed:
+	* Header frames have no ->method_frame, amqp_frame_type in Utils.pm was not handling
+	them correctly
+	* Heartbeat failure now uses the ->close method rather than just sending a close
+	frame, for consistency with other close handling
 
 0.014     2014-12-25 14:31:23+00:00 Europe/London
 	New features:
