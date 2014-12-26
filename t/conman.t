@@ -87,8 +87,11 @@ $cm->request_channel->then(sub {
 }
 
 { # Exchange-to-exchange binding
-	$cm->request_channel->then(sub {
+	$cm->request_channel(
+		confirm_mode => 1,
+	)->then(sub {
 		my ($ch) = @_;
+		my $delivery = $loop->new_future;
 		note 'Declaring queue and two exchanges';
 		Future->needs_all(
 			$ch->queue_declare(
@@ -123,14 +126,31 @@ $cm->request_channel->then(sub {
 		})->then(sub {
 			my ($q, $ctag) = @_;
 			note 'ctag is ' . $ctag;
+			$ch->bus->subscribe_to_event(
+				message => sub {
+					my ($ev, $type, $payload, $ctag) = @_;
+					note "Had message: $type, $payload";
+					$delivery->done($type => $payload);
+				}
+			);
 			$ch->publish(
-				exchange => 'test_source',
+				exchange    => 'test_source',
 				routing_key => 'xxx',
-				type => 'some_type',
+				type        => 'some_type',
+				payload     => 'test message',
 			)->transform(done => sub { $q })
 		})->then(sub {
 			my ($q) = @_;
-			note 'Published message'
+			note 'Published message';
+			Future->wait_any(
+				$loop->timeout_future(after => 10),
+				$delivery
+			)
+		})->then(sub {
+			ok($delivery->is_ready, 'delivery ready');
+			ok(!$delivery->failure, 'did not fail');
+			is_deeply([ $delivery->get ], [ 'some_type' => 'test message' ], 'had expected type and content');
+			Future->wrap;
 		})
 	})->get
 }
