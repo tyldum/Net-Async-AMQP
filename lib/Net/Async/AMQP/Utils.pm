@@ -58,8 +58,13 @@ Returns string representing type, typically the base class with Net::AMQP::Proto
 =cut
 
 sub amqp_frame_type {
-	my $frame = shift->method_frame;
-	my $ref = ref $frame;
+	my ($frame) = @_;
+	return 'Header' if $frame->isa('Net::AMQP::Frame::Header');
+	return 'Heartbeat' if $frame->isa('Net::AMQP::Frame::Heartbeat');
+	return 'Unknown' unless $frame->can('method_frame');
+
+	my $method_frame = shift->method_frame;
+	my $ref = ref $method_frame;
 	return $types{$ref} if exists $types{$ref};
 	my $re = qr/^Net::AMQP::Protocol::([^:]+::[^:]+)$/;
 	my ($frame_type) = grep /$re/, Class::ISA::self_and_super_path($ref);
