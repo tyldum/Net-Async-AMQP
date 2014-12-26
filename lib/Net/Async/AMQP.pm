@@ -21,9 +21,7 @@ Net::Async::AMQP - provides client interface to AMQP using L<IO::Async>
    host => 'localhost',
    user => 'guest',
    pass => 'guest',
-   on_connected => sub { ... }
- );
- $loop->run;
+ )->get;
 
 =head1 DESCRIPTION
 
@@ -251,10 +249,6 @@ Takes the following parameters:
 =item * user - which user to connect as, defaults to guest
 
 =item * pass - the password for this user, defaults to guest
-
-=item * on_connected - callback for when we establish a connection
-
-=item * on_error - callback for any errors encountered during connection
 
 =back
 
