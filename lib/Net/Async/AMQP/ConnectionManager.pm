@@ -109,7 +109,23 @@ Connections are established on demand.
 
 Attempts to assign a channel with the given QoS settings.
 
-Will resolve to the channel object on success.
+Available QoS settings are:
+
+=over 4
+
+=item * prefetch_count - number of messages that can be delivered at a time
+
+=item * prefetch_size - total size of messages allowed before acknowledging
+
+=item * confirm_mode - explicit publish ack
+
+=back
+
+Confirm mode isn't really QoS but it fits in with the others since it modifies
+the channel state (and once enabled, cannot be disabled without closing and
+reopening the channel).
+
+Will resolve to a L<Net::Async::AMQP::ConnectionManager::Channel> instance on success.
 
 =cut
 
