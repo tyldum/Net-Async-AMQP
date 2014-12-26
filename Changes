@@ -1,6 +1,10 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* Test::HexString test dependency was not declared
 
 0.015     2014-12-26 07:02:06+00:00 Europe/London
 	New features:
