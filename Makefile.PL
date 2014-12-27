@@ -44,11 +44,12 @@ my %WriteMakefileArgs = (
     "IPC::Open3" => 0,
     "Test::CheckDeps" => "0.010",
     "Test::Fatal" => "0.010",
+    "Test::HexString" => 0,
     "Test::MemoryGrowth" => 0,
     "Test::More" => "0.98",
     "Test::Refcount" => "0.07"
   },
-  "VERSION" => "0.015",
+  "VERSION" => "0.016",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -71,6 +72,7 @@ my %FallbackPrereqs = (
   "Net::AMQP" => "0.06",
   "Test::CheckDeps" => "0.010",
   "Test::Fatal" => "0.010",
+  "Test::HexString" => 0,
   "Test::MemoryGrowth" => 0,
   "Test::More" => "0.98",
   "Test::Refcount" => "0.07",
