@@ -392,6 +392,10 @@ Called when one of our channels has been closed.
 sub on_channel_close {
 	my ($self, $ch, $ev, %args) = @_;
 	$self->debug_printf("channel closure: %s", join ' ', @_);
+	# Channel closure only happens once per channel
+	$ev->unsubscribe;
+
+	$self->debug_printf("Adding closed channel %d back to the available list", $ch->id);
 	my $amqp = $ch->amqp or die "This channel (" . $ch->id . ") has no AMQP connection";
 	push @{$self->{closed_channel}}, [ $amqp, $ch->id ];
 
