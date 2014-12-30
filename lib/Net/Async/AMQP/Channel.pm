@@ -695,14 +695,14 @@ sub closure_protection {
 	my @ev;
 	my $bus = $self->bus;
 	$f->on_ready(sub {
-		$bus->unsubscribe_from_event(@ev);
-		@ev = ();
+		$bus->unsubscribe_from_event(splice @ev);
+		undef $f;
 	});
 	$bus->subscribe_to_event(
 		@ev = (close => sub {
-			my ($ev, @args) = @_;
-			warn "Closed channel - @args\n";
-			$f->fail(closed => @args) unless $f->is_ready;
+			my ($ev, %args) = @_;
+			$self->debug_printf("Closed channel, code %d, reason: %s", $args{code}, $args{reason});
+			$f->fail(closed => %args) unless $f->is_ready;
 		})
 	);
 	$f
