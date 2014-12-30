@@ -423,14 +423,28 @@ Called when the channel has been closed.
 =cut
 
 sub on_close {
-	my $self = shift;
-	my $frame = shift;
+	my ($self, $frame) = @_;
+
+	# ACK the close first - we have to send a close-ok
+	# before it's legal to reopen this channel ID
+	$self->send_frame(
+		Net::AMQP::Frame::Method->new(
+			method_frame => Net::AMQP::Protocol::Channel::CloseOk->new(
+			)
+		)
+	);
+
+	# It's important that the MQ instance knows
+	# about the channel closure first before we
+	# go ahead and dispatch events, since any
+	# subscribed handlers might go ahead and
+	# attempt to open the channel again immediately.
+	$self->amqp->channel_closed($self->id);
 	$self->bus->invoke_event(
 		'close',
 		code => $frame->reply_code,
 		message => $frame->reply_text,
 	);
-	$self->amqp->channel_closed($self->id);
 }
 
 =head2 send_frame
