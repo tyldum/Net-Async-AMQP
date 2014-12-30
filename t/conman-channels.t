@@ -6,12 +6,12 @@ use Test::Fatal;
 use Test::Future;
 
 use Future::Utils qw(fmap0);
-use IO::Async::Loop::Epoll;
+use IO::Async::Loop;
 use Net::Async::AMQP::ConnectionManager;
 
 plan skip_all => 'set NET_ASYNC_AMQP_HOST/USER/PASS/VHOST env vars to test' unless exists $ENV{NET_ASYNC_AMQP_HOST};
 
-my $loop = IO::Async::Loop::Epoll->new;
+my $loop = IO::Async::Loop->new;
 
 # Set up a connection manager with our MQ server details
 $loop->add(

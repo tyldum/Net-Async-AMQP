@@ -1,6 +1,11 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Test fixes:
+	* conman-channels.t was attempting to load a specific IO::Async::Loop
+	subclass, causing dependency failures.
 
 0.018     2014-12-28 17:41:10+00:00 Europe/London
 	Same code as previous version, this time with updated Changes file.
