@@ -1052,6 +1052,7 @@ Returns $self.
 
 sub process_frame {
 	my ($self, $frame) = @_;
+	$self->debug_printf("Received %s", amqp_frame_info($frame));
 
 	my $frame_type = amqp_frame_type($frame);
 
@@ -1204,6 +1205,8 @@ sub send_frame {
 		if defined $frame->channel && defined $args{channel} && $frame->channel != $args{channel};
 
 	$frame->channel($args{channel} // 0) unless defined $frame->channel;
+
+	$self->debug_printf("Sending %s", amqp_frame_info($frame));
 
 	# Get bytes to send across our transport
 	my $data = $frame->to_raw_frame;
