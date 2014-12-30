@@ -152,7 +152,7 @@ sub request_channel {
 	# so whichever means we use to obtain a channel will need to set QoS afterwards
 	my $f;
 
-	if(exists $self->{closed_channel} && @{$self->{closed_channel}}) {
+	if($self->can_reopen_channels && exists $self->{closed_channel} && @{$self->{closed_channel}}) {
 		# If we have an ID for a closed channel then reuse that first.
 		my ($mq, $id) = @{shift @{$self->{closed_channel}}};
 		$self->debug_printf("Reopening closed channel %d", $id);
@@ -209,6 +209,8 @@ sub request_channel {
 		}
 	);
 }
+
+sub can_reopen_channels { 1 }
 
 sub channel_retry_count { 3 }
 
