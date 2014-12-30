@@ -557,7 +557,7 @@ reused in preference to handing out a new ID.
 sub next_channel {
 	my $self = shift;
 	$self->{channel} //= 0;
-	return shift @{$self->{available_channel_id}} if @{$self->{available_channel_id} ||=[] };
+	return shift @{$self->{available_channel_id}} if @{$self->{available_channel_id} ||= [] };
 	return undef if $self->{channel} >= $self->channel_max;
 	++$self->{channel}
 }
@@ -605,8 +605,14 @@ Returns the new L<Net::Async::AMQP::Channel> instance.
 sub open_channel {
 	my $self = shift;
 	my %args = @_;
-	my $channel = $args{channel} // $self->next_channel;
-	die "Channel " . $channel . " exists already" if exists $self->{channel_map}{$channel};
+	my $channel;
+	if($args{channel}) {
+		$channel = delete $args{channel};
+		extract_by { $channel == $_ } @{$self->{available_channel_id}} if exists $self->{available_channel_id};
+	} else {
+		$channel = $self->next_channel;
+	}
+	die "Channel " . $channel . " exists already: " . $self->{channel_map}{$channel} if exists $self->{channel_map}{$channel};
 	my $c = $self->create_channel($channel);
 	my $f = $c->future;
 
