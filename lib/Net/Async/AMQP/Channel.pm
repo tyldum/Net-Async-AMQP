@@ -662,14 +662,6 @@ Event bus. Used for sharing channel-specific events.
 
 sub bus { $_[0]->{bus} ||= Mixin::Event::Dispatch::Bus->new }
 
-=head2 write
-
-Proxy a write operation through the parent L<Net::Async::AMQP> instance.
-
-=cut
-
-sub write { shift->amqp->write(@_) }
-
 =head2 future
 
 The underlying L<Future> for this channel which
