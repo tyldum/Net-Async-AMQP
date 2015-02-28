@@ -654,20 +654,13 @@ sub close {
 		my @handler = (
 			close => sub {
 				my ($ev, $reason) = @_;
-				$f->done($reason) unless $f->is_ready;
 				$ev->unsubscribe;
+				return unless $f;
+				$f->done($reason) unless $f->is_ready;
 				weaken $f;
 			}
 		)
 	);
-
-	# ... and make sure we clean up after ourselves
-	$f->on_ready(sub {
-		$self->bus->unsubscribe_from_event(
-			@handler
-		);
-		weaken $f;
-	});
 
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Connection::Close->new(
@@ -679,7 +672,14 @@ sub close {
 		'Connection::CloseOk' => [ $f, $self ],
 	);
 	$self->send_frame($frame);
-	return $f;
+
+	# ... and make sure we clean up after ourselves
+	$f->on_ready(sub {
+		$self->bus->unsubscribe_from_event(
+			@handler
+		);
+		weaken $f if $f;
+	});
 }
 
 =head2 channel_closed
