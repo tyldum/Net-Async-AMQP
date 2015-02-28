@@ -49,9 +49,21 @@ sub configure {
     $self->SUPER::configure(%args);
 }
 
+=head2 amqp
+
+=cut
+
 sub amqp { shift->{amqp} }
 
+=head2 future
+
+=cut
+
 sub future { shift->{future} }
+
+=head2 queue_name
+
+=cut
 
 sub queue_name {
     my $self = shift;
@@ -59,6 +71,10 @@ sub queue_name {
     $self->{queue_name} = shift;
     $self
 }
+
+=head2 channel
+
+=cut
 
 sub channel { shift->{channel} }
 
@@ -70,17 +86,39 @@ sub channel { shift->{channel} }
 
 =cut
 
+=head2 write
+
+=cut
+
 sub write { shift->amqp->write(@_) }
 
 =head1 PROXIED METHODS - Net::Async::AMQP::Channel
 
 =cut
 
+=head2 send_frame
+
+=cut
+
 sub send_frame { shift->channel->send_frame(@_) }
+
+=head2 push_pending
+
+=cut
+
 sub push_pending { shift->channel->push_pending(@_) }
+
+=head2 closure_protection
+
+=cut
+
 sub closure_protection { shift->channel->closure_protection(@_) }
 
 =head1 METHODS
+
+=cut
+
+=head2 listen
 
 =cut
 
@@ -174,6 +212,10 @@ sub cancel {
     $self->adopt_future($f->else_done);
 	$f
 }
+
+=head2 bind_exchange
+
+=cut
 
 sub bind_exchange {
     my $self = shift;
