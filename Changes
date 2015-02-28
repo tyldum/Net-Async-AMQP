@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.021     2015-01-06 12:18:20+00:00 Europe/London
 	API CHANGES: The undocumented Queue methods now all take a channel
 	parameter, so that we don't retain a channel on the queue instance.
 	This is unlikely to change again before 1.0 so the methods are now
