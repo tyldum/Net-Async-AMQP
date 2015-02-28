@@ -1,6 +1,14 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	API CHANGES: The undocumented Queue methods now all take a channel
+	parameter, so that we don't retain a channel on the queue instance.
+	This is unlikely to change again before 1.0 so the methods are now
+	documented. Queues are no longer notifier subclasses.
+
+	Bugs fixed:
+	* Memory leak due to ::Queue instances being held by the loop, and
+	channels being retained by the queue instances.
 
 0.020     2015-01-05 12:54:17+00:00 Europe/London
 	No new features.
