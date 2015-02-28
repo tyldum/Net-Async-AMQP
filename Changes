@@ -8,7 +8,9 @@ Revision history for {{$dist->name}}
 
 	Bugs fixed:
 	* Memory leak due to ::Queue instances being held by the loop, and
-	channels being retained by the queue instances.
+	channels being retained by the queue instances (caught by
+	Test::MemoryGrowth, analysed by Devel::MAT, a handy pair of tools
+	indeed)
 
 0.020     2015-01-05 12:54:17+00:00 Europe/London
 	No new features.
