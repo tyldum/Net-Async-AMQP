@@ -690,22 +690,48 @@ sub as_string {
 	sprintf "Channel[%d]", $self->id;
 }
 
+=head2 closure_protection
+
+Helper method for marking any outstanding requests as failed when the channel closes.
+
+Takes a L<Future>, returns a L<Future> (probably the same one).
+
+=cut
+
 sub closure_protection {
 	my ($self, $f) = @_;
+	unless($f) {
+		$self->debug_printf("Closure protection requested for future which has already disappeared");
+		return Future->fail(closed => 'future has already been released');
+	}
+
+	# No sense in proceeding if the Future has already completed
+	return $f if $f->is_ready;
+
 	my @ev;
 	my $bus = $self->bus;
-	$f->on_ready(sub {
-		$bus->unsubscribe_from_event(splice @ev);
-		undef $f;
-	});
 	$bus->subscribe_to_event(
 		@ev = (close => sub {
 			my ($ev, %args) = @_;
 			$self->debug_printf("Closed channel, code %d, reason: %s", $args{code}, $args{reason});
+			unless($f) {
+				$self->debug_printf("Future has disappeared already, not marking as failed");
+				# We should have unsubscribed already, but do this just in case.
+				$ev->unsubscribe;
+				splice @ev;
+				return;
+			}
+
 			$f->fail(closed => %args) unless $f->is_ready;
 		})
 	);
-	$f
+
+	# Use return value from ->on_ready, since we may clear $f immediately if the future is already
+	# marked as ready.
+	$f->on_ready(sub {
+		$bus->unsubscribe_from_event(splice @ev);
+		undef $f;
+	});
 }
 
 1;
