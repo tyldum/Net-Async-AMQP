@@ -27,7 +27,7 @@ $cm->add(
 
 { # Exchange-to-exchange binding
 	my $thing = 'aa00001';
-	my $countdown = 1000;
+	my $countdown = 100;
 	(fmap0 {
 		$cm->request_channel(
 			confirm_mode => 1,
@@ -37,7 +37,7 @@ $cm->add(
 				$ch->bus->subscribe_to_event(
 					close => sub {
 						note "Channel closed - @_";
-						shift->unsubscribe;
+						eval { shift->unsubscribe; } # don't care if we weren't already subscribed
 					}
 				);
 				my $delivery = $loop->new_future;
@@ -55,17 +55,22 @@ $cm->add(
 				)->then(sub {
 					my ($q) = @_;
 					if(rand > 0.9) {
-						$q->delete;
+						$q->delete(
+							channel => $ch
+						);
 					}
 					Future->needs_all(
 						$q->bind_exchange(
+							channel => $ch,
 							exchange => 'test_channel_spam',
 							routing_key => $rkey,
 						),
 					)
 				})->then(sub {
 					my ($q) = @_;
-					$q->listen
+					$q->listen(
+						channel => $ch,
+					)
 				})->then(sub {
 					my ($q, $ctag) = @_;
 					note 'ctag is ' . $ctag;
@@ -101,7 +106,7 @@ $cm->add(
 				Future->fail($@);
 			}
 		})->else_done
-	} concurrent => 256, generate => sub { $countdown-- || () })->get;
+	} concurrent => 16, generate => sub { return unless $countdown; $countdown-- })->get;
 }
 
 $cm->shutdown->get;

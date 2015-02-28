@@ -3,17 +3,9 @@ package Net::Async::AMQP::Queue;
 use strict;
 use warnings;
 
-use parent qw(IO::Async::Notifier);
-
 =head1 NAME
 
 Net::Async::AMQP::Queue - deal with queue-specific functionality
-
-=head1 SYNOPSIS
-
-
-=head1 DESCRIPTION
-
 
 =cut
 
@@ -54,7 +46,8 @@ Expects the following named parameters:
 =back
 
 Returns a L<Future> which resolves with ($queue, $consumer_tag) on
-completion.
+completion. If this is cancelled before we receive the Basic.ConsumeOk
+acknowledgement from the server, we'll issue an explicit cancel.
 
 =cut
 
@@ -67,8 +60,8 @@ sub listen {
 
     # Attempt to bind after we've successfully declared the exchange.
     my $f = $self->future->then(sub {
-        my $f = $self->loop->new_future;
-        $self->debug_printf("Attempting to listen for events on queue [%s]", $self->queue_name);
+        my $f = $ch->loop->new_future;
+        $ch->debug_printf("Attempting to listen for events on queue [%s]", $self->queue_name);
 
         my $frame = Net::AMQP::Protocol::Basic::Consume->new(
             queue        => Net::AMQP::Value::String->new($self->queue_name),
@@ -79,7 +72,7 @@ sub listen {
             ticket       => 0,
             nowait       => 0,
         );
-        $self->push_pending(
+        $ch->push_pending(
             'Basic::ConsumeOk' => (sub {
                 my ($amqp, $frame) = @_;
 				my $ctag = $frame->method_frame->consumer_tag;
@@ -92,12 +85,12 @@ sub listen {
 				# that's mildly awkward - we need to cancel the consumer,
 				# note that messages may be delivered in the interim.
 				if($f->is_cancelled) {
-					$self->adopt_future(
+					$ch->adopt_future(
 						$self->cancel(
 							consumer_tag => $ctag
 						)->on_fail(sub {
 							# We should report this, but where to?
-							$self->debug_printf("Failed to cancel listener %s", $ctag);
+							$ch->debug_printf("Failed to cancel listener %s", $ctag);
 						})->else_done->set_label(
 							"Cancel $ctag"
 						)
@@ -109,7 +102,7 @@ sub listen {
         $ch->send_frame($frame);
         $f;
     });
-	$self->adopt_future($f->else_done);
+	$ch->adopt_future($f->else_done);
 	$f
 }
 
@@ -146,14 +139,14 @@ sub cancel {
 
     # Attempt to bind after we've successfully declared the exchange.
 	my $f = $self->future->then(sub {
-		my $f = $self->loop->new_future;
-		$self->debug_printf("Attempting to cancel consumer [%s]", $args{consumer_tag});
+		my $f = $ch->loop->new_future;
+		$ch->debug_printf("Attempting to cancel consumer [%s]", $ctag);
 
 		my $frame = Net::AMQP::Protocol::Basic::Cancel->new(
-			consumer_tag => Net::AMQP::Value::String->new($args{consumer_tag}),
+			consumer_tag => Net::AMQP::Value::String->new($ctag),
 			nowait       => 0,
 		);
-		$self->push_pending(
+		$ch->push_pending(
 			'Basic::CancelOk' => (sub {
 				my ($amqp, $frame) = @_;
 				my $ctag = $frame->method_frame->consumer_tag;
@@ -167,7 +160,7 @@ sub cancel {
 		$ch->send_frame($frame);
 		$f;
 	});
-    $self->adopt_future($f->else_done);
+    $ch->adopt_future($f->else_done);
 	$f
 }
 
@@ -209,8 +202,8 @@ sub bind_exchange {
 
     # Attempt to bind after we've successfully declared the exchange.
 	my $f = $self->future->then(sub {
-		my $f = $self->loop->new_future;
-		$self->debug_printf("Binding queue [%s] to exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
+		my $f = $ch->loop->new_future;
+		$ch->debug_printf("Binding queue [%s] to exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 
 		my $frame = Net::AMQP::Frame::Method->new(
 			method_frame => Net::AMQP::Protocol::Queue::Bind->new(
@@ -221,14 +214,14 @@ sub bind_exchange {
 				nowait      => 0,
 			)
 		);
-		$self->push_pending(
+		$ch->push_pending(
 			'Queue::BindOk' => [ $f, $self ],
 		);
 		$ch->closure_protection($f);
 		$ch->send_frame($frame);
 		$f
 	});
-	$self->adopt_future($f->else_done);
+	$ch->adopt_future($f->else_done);
 	$f
 }
 
@@ -263,8 +256,8 @@ sub delete : method {
 	my $ch = delete $args{channel} or die "No channel provided";
 
 	my $f = $self->future->then(sub {
-		my $f = $self->loop->new_future;
-		$self->debug_printf("Deleting queue [%s]", $self->queue_name);
+		my $f = $ch->loop->new_future;
+		$ch->debug_printf("Deleting queue [%s]", $self->queue_name);
 
 		my $frame = Net::AMQP::Frame::Method->new(
 			method_frame => Net::AMQP::Protocol::Queue::Delete->new(
@@ -272,14 +265,14 @@ sub delete : method {
 				nowait      => 0,
 			)
 		);
-		$self->push_pending(
+		$ch->push_pending(
 			'Queue::DeleteOk' => [ $f, $self ],
 		);
 		$ch->closure_protection($f);
 		$ch->send_frame($frame);
 		$f
 	});
-	$self->adopt_future($f->else_done);
+	$ch->adopt_future($f->else_done);
 	$f
 }
 
@@ -288,6 +281,13 @@ sub delete : method {
 These are mostly intended for internal use only.
 
 =cut
+
+sub new {
+	my ($class, %args) = @_;
+	my $self = bless {}, $class;
+	$self->configure(%args);
+	$self
+}
 
 =head2 configure
 
@@ -303,7 +303,7 @@ sub configure {
 	for(grep exists $args{$_}, qw(future channel)) {
 		$self->{$_} = delete $args{$_};
 	}
-    $self->SUPER::configure(%args);
+	$self
 }
 
 =head2 amqp
@@ -316,7 +316,7 @@ sub amqp { shift->{amqp} }
 
 =head2 future
 
-A weakref to the L<Future> representing the queue readiness.
+A ref to the L<Future> representing the queue readiness.
 
 =cut
 

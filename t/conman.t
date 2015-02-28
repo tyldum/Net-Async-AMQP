@@ -110,6 +110,7 @@ $cm->request_channel->then(sub {
 			note 'Binding queue and exchanges';
 			Future->needs_all(
 				$q->bind_exchange(
+					channel => $ch,
 					exchange => 'test_destination',
 					routing_key => '#',
 				),
@@ -122,7 +123,9 @@ $cm->request_channel->then(sub {
 		})->then(sub {
 			my ($q) = @_;
 			note 'Starting queue consumer';
-			$q->listen
+			$q->listen(
+				channel => $ch,
+			)
 		})->then(sub {
 			my ($q, $ctag) = @_;
 			note 'ctag is ' . $ctag;

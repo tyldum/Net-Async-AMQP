@@ -41,9 +41,12 @@ $cm->add(
 				),
 			)->then(sub {
 				my ($q) = @_;
-				$q->delete->then(sub {
+				$q->delete(
+					channel => $ch
+				)->then(sub {
 					# This should fail and thus throw an exception on ->get
 					$q->bind_exchange(
+						channel => $ch,
 						exchange => 'test_channel_spam',
 						routing_key => 'abc'
 					)

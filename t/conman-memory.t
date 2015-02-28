@@ -28,10 +28,29 @@ no_growth {
 	$cm->request_channel->then(sub {
 		my $ch = shift;
 		fail("invalid channel") unless $ch->id;
-		$ch->exchange_declare(
-			exchange => 'test_exchange',
-			type     => 'fanout',
-		)
+		Future->needs_all(
+			$ch->queue_declare(
+				queue => '',
+			),
+			$ch->exchange_declare(
+				exchange => 'test_exchange',
+				type     => 'fanout',
+			),
+		)->then(sub {
+			my ($q) = @_;
+			$q->bind_exchange(
+				channel => $ch,
+				exchange => 'test_exchange',
+				routing_key => '*',
+			)->then(sub {
+				$q->listen(
+					channel => $ch,
+				)
+			})->then(sub {
+				my ($q, $ctag) = @_;
+				$q->cancel(consumer_tag => $ctag)
+			})
+		}),
 	})->get
 } 'assign and release channels without leaking memory';
 
