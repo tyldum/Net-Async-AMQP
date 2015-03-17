@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.022     2015-01-20 11:00:03+00:00 Europe/London
 	New features:
 	* SSL support, pass ssl => 1 in $amqp->connect
 
