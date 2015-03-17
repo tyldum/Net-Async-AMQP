@@ -361,7 +361,7 @@ sub request_connection {
 						# Drop this connection on close.
 						my ($ev) = @_;
 						eval { $ev->unsubscribe; };
-						Scalar::UtilsBy::extract_by {
+						List::UtilsBy::extract_by {
 							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
 						} @{$self->{available_connections}};
 					}

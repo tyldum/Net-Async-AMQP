@@ -1,6 +1,12 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* ConnectionManager updated to use List::UtilsBy::extract_by, not
+	Scalar::Utils::extract_by, since the former has the advantage of actually
+	being a real thing.
 
 0.024     2015-02-04 14:26:38+00:00 Europe/London
 	No new features.
