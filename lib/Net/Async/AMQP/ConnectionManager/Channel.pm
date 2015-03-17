@@ -69,7 +69,7 @@ sub _listener_start {
 		Net::Async::AMQP::Queue->new(
 			amqp    => $self->amqp,
 			channel => $self,
-			future  => Future->wrap
+			future  => Future->done()
 		)->cancel(
 			consumer_tag => $ctag
 		)
