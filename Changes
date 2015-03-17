@@ -1,6 +1,11 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* In some cases would raise an exception due to attempting to unsubscribe
+	from an event that had already been unsubscribed (close, for example).
 
 0.023     2015-01-23 12:34:48+00:00 Europe/London
 	New features:
