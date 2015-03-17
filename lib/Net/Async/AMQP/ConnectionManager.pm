@@ -359,7 +359,8 @@ sub request_connection {
 				$mq->bus->subscribe_to_event(
 					close => sub {
 						# Drop this connection on close.
-						shift->unsubscribe;
+						my ($ev) = @_;
+						eval { $ev->unsubscribe; };
 						Scalar::UtilsBy::extract_by {
 							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
 						} @{$self->{available_connections}};
@@ -465,7 +466,7 @@ sub on_channel_close {
 	my ($self, $ch, $ev, %args) = @_;
 	$self->debug_printf("channel closure: %s", join ' ', @_);
 	# Channel closure only happens once per channel
-	$ev->unsubscribe;
+	eval { $ev->unsubscribe; };
 
 	$self->debug_printf("Adding closed channel %d back to the available list", $ch->id);
 	my $amqp = $ch->amqp or die "This channel (" . $ch->id . ") has no AMQP connection";

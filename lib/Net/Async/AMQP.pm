@@ -667,11 +667,13 @@ sub close {
 	# We might end up with a connection shutdown rather
 	# than a clean Connection::Close response, so
 	# we need to handle both possibilities
+	my @handler;
 	$self->bus->subscribe_to_event(
-		my @handler = (
+		@handler = (
 			close => sub {
 				my ($ev, $reason) = @_;
-				$ev->unsubscribe;
+				splice @handler;
+				eval { $ev->unsubscribe; };
 				return unless $f;
 				$f->done($reason) unless $f->is_ready;
 				weaken $f;

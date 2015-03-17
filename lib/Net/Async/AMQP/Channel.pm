@@ -710,8 +710,8 @@ sub closure_protection {
 			unless($f) {
 				$self->debug_printf("Future has disappeared already, not marking as failed");
 				# We should have unsubscribed already, but do this just in case.
-				$ev->unsubscribe;
 				splice @ev;
+				eval { $ev->unsubscribe; };
 				return;
 			}
 
