@@ -3,6 +3,9 @@ Revision history for {{$dist->name}}
 {{$NEXT}}
 	No new features.
 
+	Bugs fixed:
+	* Connections are removed from the full list when closed by the server
+
 	Test fixes:
 	* Test::MemoryGrowth is currently Linux-only, so make it optional (RT102681)
 
