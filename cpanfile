@@ -11,6 +11,8 @@ requires 'IO::Socket::IP', 0;
 requires 'Time::HiRes', 0;
 requires 'List::UtilsBy', 0;
 
+recommends 'IO::Async::SSL', 0;
+
 on 'test' => sub {
 	requires 'Test::More', '>= 0.98';
 	requires 'Test::Fatal', '>= 0.010';

@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	New features:
+	* SSL support, pass ssl => 1 in $amqp->connect
 
 0.021     2015-01-06 12:18:20+00:00 Europe/London
 	API CHANGES: The undocumented Queue methods now all take a channel

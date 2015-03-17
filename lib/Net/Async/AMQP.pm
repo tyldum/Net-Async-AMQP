@@ -5,7 +5,7 @@ use warnings;
 
 use parent qw(IO::Async::Notifier);
 
-our $VERSION = '0.021';
+our $VERSION = '0.022';
 
 =head1 NAME
 
@@ -252,6 +252,10 @@ Takes the following parameters:
 
 =item * pass - the password for this user, defaults to guest
 
+=item * ssl - true if you want to connect over SSL
+
+=item * SSL_* - SSL-specific parameters, see L<IO::Async::SSL> and L<IO::Socket::SSL> for details
+
 =back
 
 Returns $self.
@@ -292,7 +296,10 @@ sub connect {
 		$f->fail(connect => 'Remote closed connection') unless $f->is_ready;
 	});
 
-	$loop->connect(
+	# Support SSL connection
+	require IO::Async::SSL if $args{ssl};
+	my $method = $args{ssl} ? 'SSL_connect' : 'connect';
+	$loop->$method(
 		host     => $self->{host},
 		# local_host can be used to send from a different source address,
 		# sometimes useful for routing purposes or loadtesting
@@ -304,6 +311,11 @@ sub connect {
 
 		on_resolve_error => $f->curry::fail('resolve'),
 		on_connect_error => $f->curry::fail('connect'),
+		($args{ssl}
+		? (on_ssl_error => $f->curry::fail('ssl'))
+		: ()
+		),
+		(map {; $_ => $args{$_} } grep /^SSL/, keys %args)
 	);
 	$f;
 }
