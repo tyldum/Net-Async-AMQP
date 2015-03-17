@@ -50,6 +50,8 @@ The following AMQP features are supported:
 
 =item * QoS
 
+=item * SSL
+
 =back
 
 =head2 RabbitMQ-specific features
@@ -67,6 +69,9 @@ RabbitMQ provides some additional features:
 =back
 
 =head2 Missing features
+
+The following features aren't currently implemented - raise a request via RT or by email (L</AUTHOR>)
+if you want any of these:
 
 =over 4
 

@@ -105,6 +105,16 @@ Connections are established on demand.
 
 =head1 METHODS
 
+=cut
+
+sub configure {
+	my ($self, %args) = @_;
+	for(qw(channel_retry_count connect_timeout)) {
+		$self->{$_} = delete $args{$_} if exists $args{$_};
+	}
+	$self->SUPER::configure(%args);
+}
+
 =head2 request_channel
 
 Attempts to assign a channel with the given QoS settings.
@@ -183,7 +193,12 @@ sub request_channel {
 					Future->fail(channel => 'no spare channels on connection');
 				}
 			});
-		} until => sub { shift->is_done || ++$count > $self->channel_retry_count };
+		} until => sub {
+			my $f = shift;
+			return 1 if $f->is_done;
+			return 0 unless defined(my $retry = $self->channel_retry_count);
+			return 1 if ++$count > $retry
+		}
 	}
 
 	# Apply our QoS on the channel if we ever get one
@@ -210,9 +225,44 @@ sub request_channel {
 	);
 }
 
+=head2 can_reopen_channels
+
+A constant which indicates whether we can reopen channels. The AMQP0.9.1
+spec doesn't seem to explicitly allow this, but it works with RabbitMQ 3.4.3
+(and probably older versions) so it's enabled by default.
+
+=cut
+
 sub can_reopen_channels { 1 }
 
-sub channel_retry_count { 3 }
+=head2 channel_retry_count
+
+Returns the channel retry count. The default is 10, call L</configure>
+with undef to retry indefinitely, 0 to avoid retrying at all:
+
+ # Keep trying until it works
+ $mq->configure(channel_retry_count => undef);
+ # Don't retry at all
+ $mq->configure(channel_retry_count => 0);
+
+=cut
+
+sub channel_retry_count {
+	my $self = shift;
+	# undef is a valid entry here
+	if(!exists $self->{channel_retry_count}) {
+		$self->{channel_retry_count} = 10;
+	}
+	$self->{channel_retry_count}
+}
+
+=head2 connect_timeout
+
+Returns the current connection timeout. undef/zero means "no timeout".
+
+=cut
+
+sub connect_timeout { shift->{connect_timeout} }
 
 =head2 apply_qos
 
@@ -297,22 +347,44 @@ sub request_connection {
 	die "No connection details available" unless $self->{amqp_host};
 
 	$self->debug_printf("New connection is required");
-	$self->{pending_connection} = $self->connect(
-		%{$self->next_host}
-	)->on_ready(sub {
-		delete $self->{pending_connection};
-	})->transform(
-		done => sub {
-			my $mq = shift;
-			my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
-				amqp    => $mq,
-				manager => $self,
-			);
-			push @{$self->{available_connections}}, $mq;
-			$conn
-		}
-	)->set_label(
-		'Connect to MQ server'
+	my $timeout = $self->connect_timeout;
+	Future->wait_any(
+		$self->{pending_connection} = $self->connect(
+			%{$self->next_host}
+		)->on_ready(sub {
+			delete $self->{pending_connection};
+		})->transform(
+			done => sub {
+				my $mq = shift;
+				$mq->bus->subscribe_to_event(
+					close => sub {
+						# Drop this connection on close.
+						shift->unsubscribe;
+						Scalar::UtilsBy::extract_by {
+							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
+						} @{$self->{available_connections}};
+					}
+				);
+				my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
+					amqp    => $mq,
+					manager => $self,
+				);
+				push @{$self->{available_connections}}, $mq;
+				$conn
+			}
+		)->set_label(
+			'Connect to MQ server'
+		),
+		( # Cancel the attempt if the timeout expires
+			$timeout ?
+			$self->loop->timeout_future(
+				after => $self->connect_timeout,
+			)->on_fail(sub {
+				$self->{pending_connection}->cancel if $self->{pending_connection} && !$self->{pending_connection}->is_ready;
+			})
+			# ... if we had a timeout
+			: ()
+		)
 	)
 }
 
