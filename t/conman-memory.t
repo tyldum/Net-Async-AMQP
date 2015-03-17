@@ -1,14 +1,21 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::MemoryGrowth;
 use Test::Refcount;
 
 use Future::Utils;
 use IO::Async::Loop;
 use Net::Async::AMQP::ConnectionManager;
 
-plan skip_all => 'set NET_ASYNC_AMQP_HOST/USER/PASS/VHOST env vars to test' unless exists $ENV{NET_ASYNC_AMQP_HOST};
+BEGIN {
+	plan skip_all => 'set NET_ASYNC_AMQP_HOST/USER/PASS/VHOST env vars to test' unless exists $ENV{NET_ASYNC_AMQP_HOST};
+
+	eval {
+		require Test::MemoryGrowth;
+		Test::MemoryGrowth->import;
+		1
+	} or do plan skip_all => 'needs Test::MemoryGrowth installed'
+}
 
 my $loop = IO::Async::Loop->new;
 

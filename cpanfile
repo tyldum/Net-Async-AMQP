@@ -18,5 +18,5 @@ on 'test' => sub {
 	requires 'Test::Fatal', '>= 0.010';
 	requires 'Test::Refcount', '>= 0.07';
 	requires 'Test::HexString', 0;
-	requires 'Test::MemoryGrowth', 0;
+	suggests 'Test::MemoryGrowth', 0;
 };

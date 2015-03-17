@@ -1,6 +1,10 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Test fixes:
+	* Test::MemoryGrowth is currently Linux-only, so make it optional (RT102681)
 
 0.025     2015-02-04 17:05:39+00:00 Europe/London
 	No new features.
