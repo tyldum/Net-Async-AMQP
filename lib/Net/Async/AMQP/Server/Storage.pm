@@ -1,4 +1,5 @@
 package Net::Async::AMQP::Storage;
+
 use strict;
 use warnings;
 
