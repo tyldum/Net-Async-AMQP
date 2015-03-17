@@ -364,6 +364,11 @@ sub request_connection {
 						List::UtilsBy::extract_by {
 							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
 						} @{$self->{available_connections}};
+
+						# Also remove from the full list...
+						List::UtilsBy::extract_by {
+							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
+						} @{$self->{full_connections}};
 					}
 				);
 				my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
