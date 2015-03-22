@@ -659,9 +659,9 @@ sub bus { $_[0]->{bus} ||= Mixin::Event::Dispatch::Bus->new }
 
 =head2 future
 
-The underlying L<Future> for this channel which
-will resolve to the instance once the channel
-is open.
+The underlying L<Future> for this channel.
+
+Will resolve to the L<Net::Async::Channel> instance once the channel is open.
 
 =cut
 
