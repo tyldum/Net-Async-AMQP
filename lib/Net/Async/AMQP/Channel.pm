@@ -685,6 +685,15 @@ sub as_string {
 	sprintf "Channel[%d]", $self->id;
 }
 
+=head2 closed
+
+Returns true if the channel has been closed, 1 if not (which could mean it is either not yet open,
+or that it is open and has not yet been closed by either side).
+
+=cut
+
+sub is_closed { shift->{is_closed} }
+
 =head2 closure_protection
 
 Helper method for marking any outstanding requests as failed when the channel closes.
