@@ -2,6 +2,12 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.027     2015-03-22 15:11:03+00:00 Europe/London
+	No new features.
+
+	Test fixes:
+	* fixed typo in t/conman-memory.t
+
 0.026     2015-03-17 16:57:07+00:00 Europe/London
 	No new features.
 
