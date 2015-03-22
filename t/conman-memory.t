@@ -14,7 +14,7 @@ BEGIN {
 		require Test::MemoryGrowth;
 		Test::MemoryGrowth->import;
 		1
-	} or do plan skip_all => 'needs Test::MemoryGrowth installed'
+	} or plan skip_all => 'needs Test::MemoryGrowth installed'
 }
 
 my $loop = IO::Async::Loop->new;
