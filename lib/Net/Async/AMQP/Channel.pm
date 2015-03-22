@@ -418,6 +418,8 @@ Called when the channel has been closed.
 sub on_close {
 	my ($self, $frame) = @_;
 
+	$self->{is_closed} = 1;
+
 	# ACK the close first - we have to send a close-ok
 	# before it's legal to reopen this channel ID
 	$self->send_frame(
