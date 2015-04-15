@@ -2,7 +2,9 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 	Features:
-	* Supports messages which have been split into multiple frames
+	* Supports messages which have been split into multiple frames - currently
+	there's no streaming support, but this should now handle arbitrarily-large
+	messages as long as you have the memory available.
 
 	Bugs fixed:
 	* Better channel close detection and handling - we now also record when
