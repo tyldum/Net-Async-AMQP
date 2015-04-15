@@ -10,6 +10,7 @@ requires 'File::ShareDir', 0;
 requires 'IO::Socket::IP', 0;
 requires 'Time::HiRes', 0;
 requires 'List::UtilsBy', 0;
+requires 'Variable::Disposition', '>= 0.004';
 
 recommends 'IO::Async::SSL', 0;
 

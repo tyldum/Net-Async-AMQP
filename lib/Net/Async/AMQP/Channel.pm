@@ -44,6 +44,7 @@ request will fail.
 use Future;
 use curry::weak;
 use Class::ISA ();
+use Variable::Disposition qw(retain_future);
 use Data::Dumper;
 use Scalar::Util qw(weaken);
 
@@ -422,24 +423,27 @@ sub on_close {
 
 	# ACK the close first - we have to send a close-ok
 	# before it's legal to reopen this channel ID
-	$self->send_frame(
-		Net::AMQP::Frame::Method->new(
-			method_frame => Net::AMQP::Protocol::Channel::CloseOk->new(
+	retain_future(
+		$self->send_frame(
+			Net::AMQP::Frame::Method->new(
+				method_frame => Net::AMQP::Protocol::Channel::CloseOk->new(
+				)
 			)
-		)
-	);
-
-	# It's important that the MQ instance knows
-	# about the channel closure first before we
-	# go ahead and dispatch events, since any
-	# subscribed handlers might go ahead and
-	# attempt to open the channel again immediately.
-	$self->amqp->channel_closed($self->id);
-	$self->bus->invoke_event(
-		'close',
-		code => $frame->reply_code,
-		message => $frame->reply_text,
-	);
+		)->then(sub {
+			# It's important that the MQ instance knows
+			# about the channel closure first before we
+			# go ahead and dispatch events, since any
+			# subscribed handlers might go ahead and
+			# attempt to open the channel again immediately.
+			$self->amqp->channel_closed($self->id);
+			$self->bus->invoke_event(
+				'close',
+				code => $frame->reply_code,
+				message => $frame->reply_text,
+			);
+			Future->done
+		})
+	)
 }
 
 =head2 send_frame
