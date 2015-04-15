@@ -34,6 +34,7 @@ my %WriteMakefileArgs = (
     "Mixin::Event::Dispatch" => "1.006",
     "Net::AMQP" => "0.06",
     "Time::HiRes" => 0,
+    "Variable::Disposition" => "0.004",
     "curry" => 0,
     "parent" => 0
   },
@@ -47,7 +48,7 @@ my %WriteMakefileArgs = (
     "Test::More" => "0.98",
     "Test::Refcount" => "0.07"
   },
-  "VERSION" => "0.027",
+  "VERSION" => "0.028",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -74,6 +75,7 @@ my %FallbackPrereqs = (
   "Test::More" => "0.98",
   "Test::Refcount" => "0.07",
   "Time::HiRes" => 0,
+  "Variable::Disposition" => "0.004",
   "curry" => 0,
   "parent" => 0
 );
