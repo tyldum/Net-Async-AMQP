@@ -1051,12 +1051,14 @@ sub remove_pending {
 
 Writes data to the server.
 
+Returns a L<Future> which will resolve to an empty list when
+done.
+
 =cut
 
 sub write {
 	my $self = shift;
-	$self->stream->write(@_);
-	$self
+	$self->stream->write(@_)
 }
 
 =head2 process_frame
