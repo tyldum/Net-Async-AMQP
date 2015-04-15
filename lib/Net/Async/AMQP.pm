@@ -1215,7 +1215,8 @@ Takes the $frame instance followed by these optional named parameters:
 
 =back
 
-Returns $self.
+Returns a L<Future> which will resolve to an empty list
+when the frame has been written (this does not guarantee that the server has received it).
 
 =cut
 
@@ -1237,9 +1238,9 @@ sub send_frame {
 	my $data = $frame->to_raw_frame;
 
 #    warn "Sending data: " . Dumper($frame) . "\n";
-	$self->write($data);
-	$self->reset_heartbeat;
-	$self;
+	$self->write(
+		$data,
+	)->on_done($self->curry::reset_heartbeat)
 }
 
 =head2 header_bytes
