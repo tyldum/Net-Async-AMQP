@@ -9,6 +9,11 @@ Revision history for {{$dist->name}}
 	a ::Channel instance has been closed, so we know to report an error if any
 	further requests are attempted.
 
+	Internal API changes:
+	* ->send_frame on Net::Async::AMQP and Net::Async::AMQP::Channel now return
+	a Future instead of $self, since parts of the code need to know when we've
+	attempted to send the frame.
+
 0.027     2015-03-22 15:11:03+00:00 Europe/London
 	No new features.
 
