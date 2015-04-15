@@ -598,7 +598,7 @@ sub next_pending {
 			);
 			delete $self->{incoming_message};
 			return $self;
-		} else
+		}
 	}
 
 	return $self unless $frame->can('method_frame') && (my $method_frame = $frame->method_frame);
