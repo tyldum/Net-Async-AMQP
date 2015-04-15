@@ -567,6 +567,7 @@ sub next_pending {
 
 		# Messages may be empty - in this case we'd have no body frames at all, we're done already:
 		if($frame->body_size) {
+			$self->{incoming_message}{pending} = $frame->body_size;
 		} else {
 			$self->bus->invoke_event(
 				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
@@ -579,15 +580,16 @@ sub next_pending {
 
 	# Body part of an incoming message.
 	if($frame->isa('Net::AMQP::Frame::Body')) {
-		$self->{incoming_message}{payload} .= $frame->payload;
-		$self->{incoming_message}{pending} -= length $frame->payload;
+		my $bytes = $frame->payload;
+		$self->{incoming_message}{payload} .= $bytes;
+		$self->{incoming_message}{pending} -= length $bytes;
 		if($self->{incoming_message}{pending} > 0) {
 			# We still have more to come, just return for now
 			return $self;
 		} elsif($self->{incoming_message}{pending} < 0) {
 			$self->close(
 				code => 500,
-				text => 'Excess payload bytes detected in delivery'
+				text => -$self->{incoming_message}{pending} . ' excess payload bytes detected in delivery'
 			);
 			delete $self->{incoming_message};
 			return $self;
