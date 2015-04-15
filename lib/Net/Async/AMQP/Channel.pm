@@ -555,6 +555,7 @@ sub next_pending {
 	# First part of a frame. There's more to come, so stash a new future
 	# and return.
 	if($frame->isa('Net::AMQP::Frame::Header')) {
+		# Start with empty payload
 		$self->{incoming_message}{type} = $frame->header_frame->type;
 		if($frame->header_frame->headers) {
 			eval {
@@ -565,8 +566,8 @@ sub next_pending {
 		}
 
 		# Messages may be empty - in this case we'd have no body frames at all, we're done already:
-		unless($frame->body_size) {
-			$self->{incoming_message}{payload} = '';
+		if($frame->body_size) {
+		} else {
 			$self->bus->invoke_event(
 				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
 			);
@@ -577,14 +578,27 @@ sub next_pending {
 	}
 
 	# Body part of an incoming message.
-	# TODO should handle multiple chunks?
 	if($frame->isa('Net::AMQP::Frame::Body')) {
-		$self->{incoming_message}{payload} = $frame->payload;
-		$self->bus->invoke_event(
-			message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
-		);
-		delete $self->{incoming_message};
-		return $self;
+		$self->{incoming_message}{payload} .= $frame->payload;
+		$self->{incoming_message}{pending} -= length $frame->payload;
+		if($self->{incoming_message}{pending} > 0) {
+			# We still have more to come, just return for now
+			return $self;
+		} elsif($self->{incoming_message}{pending} < 0) {
+			$self->close(
+				code => 500,
+				text => 'Excess payload bytes detected in delivery'
+			);
+			delete $self->{incoming_message};
+			return $self;
+		} else {
+			# We have a full message now - hand it over to the event bus
+			$self->bus->invoke_event(
+				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
+			);
+			delete $self->{incoming_message};
+			return $self;
+		} else
 	}
 
 	return $self unless $frame->can('method_frame') && (my $method_frame = $frame->method_frame);
@@ -611,6 +625,8 @@ sub next_pending {
 			ctag => $method_frame->consumer_tag,
 			dtag => $method_frame->delivery_tag,
 			rkey => $method_frame->routing_key,
+			payload => '',
+			payload_size => undef,
 		};
 		return $self;
 	}

@@ -1,6 +1,13 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	Features:
+	* Supports messages which have been split into multiple frames
+
+	Bugs fixed:
+	* Better channel close detection and handling - we now also record when
+	a ::Channel instance has been closed, so we know to report an error if any
+	further requests are attempted.
 
 0.027     2015-03-22 15:11:03+00:00 Europe/London
 	No new features.
