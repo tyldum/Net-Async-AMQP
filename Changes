@@ -1,6 +1,12 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	No new features.
+
+	Bugs fixed:
+	* On connection close, do a better job of cleaning up, and include a test
+	to verify that we can dispose the Net::Async::AMQP instance after loop removal
+	(thanks to snappy for reporting + providing a test case for tracing).
 
 0.028     2015-04-15 23:31:34+01:00 Europe/London
 	Features:

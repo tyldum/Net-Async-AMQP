@@ -5,7 +5,7 @@ use warnings;
 
 use parent qw(IO::Async::Notifier);
 
-our $VERSION = '0.028';
+our $VERSION = '0.029';
 
 =head1 NAME
 
@@ -338,7 +338,7 @@ sub on_stream {
 	$self->debug_printf("Stream received");
 	$self->{stream} = $stream;
 	$stream->configure(
-		on_read => $self->curry::on_read,
+		on_read => $self->curry::weak::on_read,
 	);
 	$self->add_child($stream);
 	$self->apply_heartbeat_timer if $self->heartbeat_interval;
@@ -424,6 +424,9 @@ sub on_closed {
 	$self->{channel_map} = {};
 
 	$self->stream->close if $self->stream;
+	for (qw(stream heartbeat_send_timer heartbeat_receive_timer)) {
+		$self->remove_child(delete $self->{$_}) if $self->{$_};
+	}
 	$self->bus->invoke_event(close => $reason)
 }
 
@@ -710,7 +713,7 @@ sub channel_closed {
 	my $f = delete $self->{channel_map}{$id}
 		or die "Had a close indication for channel $id but this channel is unknown";
 	$f->cancel unless $f->is_ready;
-	delete $self->{channel_by_id}{$id};
+	$self->remove_child(delete $self->{channel_by_id}{$id});
 
 	# Record this ID as available for the next time we need to open a new channel
 	push @{$self->{available_channel_id}}, $id;
