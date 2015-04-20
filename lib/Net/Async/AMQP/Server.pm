@@ -17,6 +17,7 @@ Net::Async::AMQP::Server
 
 use curry;
 use IO::Socket::IP;
+use Variable::Disposition qw(retain_future);
 
 use Net::Async::AMQP::Server::Connection;
 
@@ -102,7 +103,7 @@ sub on_listen {
 sub _add_to_loop {
 	my ($self, $loop) = @_;
 	$self->SUPER::_add_to_loop($loop);
-	$self->adopt_future(
+	retain_future(
 		$self->listen(
 			addr => {
 				family => 'inet',
