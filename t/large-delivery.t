@@ -12,7 +12,10 @@ use Net::Async::AMQP::ConnectionManager;
 plan skip_all => 'set NET_ASYNC_AMQP_HOST/USER/PASS/VHOST env vars to test' unless exists $ENV{NET_ASYNC_AMQP_HOST};
 
 # Override this to split into smaller frames
-*Net::Async::AMQP::MAX_FRAME_SIZE = sub() { 8192 };
+{
+	no warnings 'redefine';
+	*Net::Async::AMQP::MAX_FRAME_SIZE = sub() { 8192 };
+}
 
 my $loop = IO::Async::Loop->new;
 
