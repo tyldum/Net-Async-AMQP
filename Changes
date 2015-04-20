@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.028     2015-04-15 23:31:34+01:00 Europe/London
 	Features:
 	* Supports messages which have been split into multiple frames - currently
 	there's no streaming support, but this should now handle arbitrarily-large
