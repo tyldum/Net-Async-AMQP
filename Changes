@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.029     2015-04-20 01:11:17+01:00 Europe/London
 	Features:
 	* Helper functions in Net::Async::AMQP::Utils for converting status codes
 	to message/description
