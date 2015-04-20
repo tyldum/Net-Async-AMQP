@@ -77,7 +77,7 @@ sub amqp_frame_type {
 
 {
 my %amqp_codes = (
-	200 => { message => 'reply­success', description => 'Indicates that the method completed successfully. This reply code is reserved for future use ­ the current protocol design does not use positive confirmation and reply codes are sent only in case of an error.' },
+	200 => { message => 'reply­success', description => 'Indicates that the method completed successfully. This reply code is reserved for future use the current protocol design does not use positive confirmation and reply codes are sent only in case of an error.' },
 	311 => { message => 'content­too­large', type => 'channel', description => 'The client attempted to transfer content larger than the server could accept at the present time. The client may retry at a later time.' },
 	313 => { message => 'no­consumers', type => 'channel', description => 'When the exchange cannot deliver to a consumer when the immediate flag is set. As a result of pending data on the queue or the absence of any consumers of the queue.' },
 	320 => { message => 'connection­forced', type => 'connection', description => 'An operator intervened to close the connection for some reason. The client may retry at some later date.' },
