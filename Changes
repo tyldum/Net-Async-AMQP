@@ -1,7 +1,9 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
-	No new features.
+	Features:
+	* Helper functions in Net::Async::AMQP::Utils for converting status codes
+	to message/description
 
 	Bugs fixed:
 	* On connection close, do a better job of cleaning up, and include a test
