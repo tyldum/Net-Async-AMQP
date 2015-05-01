@@ -13,6 +13,7 @@ use Future;
 use curry::weak;
 use Class::ISA ();
 use Scalar::Util qw(weaken);
+use Variable::Disposition qw(retain_future);
 
 use Net::Async::AMQP;
 
@@ -59,7 +60,7 @@ sub listen {
 	$self->{channel} = $ch;
 
     # Attempt to bind after we've successfully declared the exchange.
-    my $f = $self->future->then(sub {
+    retain_future($self->future->then(sub {
         my $f = $ch->loop->new_future;
         $ch->debug_printf("Attempting to listen for events on queue [%s]", $self->queue_name);
 
@@ -85,13 +86,13 @@ sub listen {
 				# that's mildly awkward - we need to cancel the consumer,
 				# note that messages may be delivered in the interim.
 				if($f->is_cancelled) {
-					$ch->adopt_future(
+					retain_future(
 						$self->cancel(
 							consumer_tag => $ctag
 						)->on_fail(sub {
 							# We should report this, but where to?
 							$ch->debug_printf("Failed to cancel listener %s", $ctag);
-						})->else_done->set_label(
+						})->set_label(
 							"Cancel $ctag"
 						)
 					)
@@ -101,9 +102,7 @@ sub listen {
 		$ch->closure_protection($f);
         $ch->send_frame($frame);
         $f;
-    });
-	$ch->adopt_future($f->else_done);
-	$f
+    }));
 }
 
 =head2 cancel
@@ -138,7 +137,7 @@ sub cancel {
 	my $ctag = delete $args{consumer_tag} or die "No ctag";
 
     # Attempt to bind after we've successfully declared the exchange.
-	my $f = $self->future->then(sub {
+	retain_future($self->future->then(sub {
 		my $f = $ch->loop->new_future;
 		$ch->debug_printf("Attempting to cancel consumer [%s]", $ctag);
 
@@ -159,9 +158,7 @@ sub cancel {
 		$ch->closure_protection($f);
 		$ch->send_frame($frame);
 		$f;
-	});
-    $ch->adopt_future($f->else_done);
-	$f
+	}));
 }
 
 =head2 bind_exchange
@@ -201,7 +198,7 @@ sub bind_exchange {
 	my $ch = delete $args{channel} or die "No channel provided";
 
     # Attempt to bind after we've successfully declared the exchange.
-	my $f = $self->future->then(sub {
+	retain_future($self->future->then(sub {
 		my $f = $ch->loop->new_future;
 		$ch->debug_printf("Binding queue [%s] to exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 
@@ -220,9 +217,7 @@ sub bind_exchange {
 		$ch->closure_protection($f);
 		$ch->send_frame($frame);
 		$f
-	});
-	$ch->adopt_future($f->else_done);
-	$f
+	}));
 }
 
 =head2 delete
@@ -255,7 +250,7 @@ sub delete : method {
     my %args = @_;
 	my $ch = delete $args{channel} or die "No channel provided";
 
-	my $f = $self->future->then(sub {
+	retain_future($self->future->then(sub {
 		my $f = $ch->loop->new_future;
 		$ch->debug_printf("Deleting queue [%s]", $self->queue_name);
 
@@ -271,9 +266,7 @@ sub delete : method {
 		$ch->closure_protection($f);
 		$ch->send_frame($frame);
 		$f
-	});
-	$ch->adopt_future($f->else_done);
-	$f
+	}));
 }
 
 =head1 ACCESSORS
