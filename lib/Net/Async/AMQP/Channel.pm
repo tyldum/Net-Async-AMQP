@@ -252,6 +252,32 @@ channel instance once the server has confirmed publishing is complete.
   type => 'some_type',
  ) ==> $ch
 
+Some named parameters currently accepted - note that this list is likely to
+expand in future:
+
+=over 4
+
+=item * ack - we default to ACK mode, so set this to 0 to turn off explicit server ACK
+on message routing/delivery
+
+=item * immediate - if set, will cause a failure if the message could not be routed
+immediately to a consumer
+
+=item * mandatory - if set, will require that the message ends up in a queue (i.e. will
+fail messages sent to an exchange that do not have an appropriate binding)
+
+=item * content_type - defaults to application/binary
+
+=item * content_encoding - defaults to undef (none)
+
+=item * timestamp - the message timestamp, defaults to epoch time
+
+=item * expiration - use this to set per-message expiry, see L<https://www.rabbitmq.com/ttl.html>
+
+=item * priority - defaults to undef (none), use this to take advantage of RabbitMQ 3.5+ priority support
+
+=back
+
 =cut
 
 sub publish {
@@ -298,22 +324,37 @@ sub publish {
 			$args{payload},
 			exchange         => Net::AMQP::Value::String->new($args{exchange}),
 			mandatory		 => $args{mandatory} // 0,
-			immediate        => 0,
+			immediate        => $args{immediate} // 0,
 			(exists $args{routing_key} ? (routing_key => Net::AMQP::Value::String->new($args{routing_key})) : ()),
 			ticket           => 0,
-			content_type     => 'application/binary',
-			content_encoding => undef,
-			timestamp        => time,
+			content_type     => $args{content_type} // 'application/binary',
+			content_encoding => $args{content_encoding},
+			timestamp        => $args{timestamp} // time,
 			type             => Net::AMQP::Value::String->new($args{type}),
 			user_id          => $self->amqp->user,
-			no_ack           => 0,
+			no_ack           => (
+				# inverse flags are a pain... we default to ACK mode.
+				# If the ack parameter is given, this overrides the
+				# setting - so ack => 1 means no_ack => 0, ack => 0 means no_ack => 1,
+				# and lack of ack means no_ack => 0.
+				exists $args{ack}
+				? (
+					$args{ack} ? 0 : 1
+				) : 0
+			),
 #            headers          => {
 #                type => $args{type},
 #            },
 			delivery_mode    => 1,
-			priority         => 1,
+			priority         => $args{priority} // 1,
 			correlation_id   => undef,
-			expiration       => undef,
+			expiration       => (
+				exists $args{expiration}
+				# This would seem to make more sense as a numeric value, but the spec
+				# defines this as a shortstr
+				? Net::AMQP::Value::String->new($args{expiration})
+				: undef
+			),
 			message_id       => undef,
 			app_id           => undef,
 			cluster_id       => undef,
