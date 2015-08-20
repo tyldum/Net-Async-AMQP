@@ -4,6 +4,12 @@ Revision history for {{$dist->name}}
 	Features:
 	* Support more options when publishing messages (including message
 	expiration, thanks to Naveen Nathan for the patch)
+	* ->unbind_exchange method
+
+	Bugs fixed:
+	* Don't send a CloseOk frame if we were the ones closing the channel.
+	* More cleanup in Net::Async::ConnectionManager when channels and/or connections
+	are closed.
 
 0.029     2015-04-20 01:11:17+01:00 Europe/London
 	Features:
