@@ -220,6 +220,65 @@ sub bind_exchange {
 	}));
 }
 
+=head2 unbind_exchange
+
+Unbinds this queue from an exchange.
+
+ $q->unbind_exchange(
+  channel => $ch,
+  exchange => '',
+ )->then(sub {
+  my ($q) = @_;
+  print "Queue $q unbound from default exchange\n";
+  ...
+ })
+
+Expects the following named parameters:
+
+=over 4
+
+=item * channel - which channel to perform the bind on
+
+=item * exchange - the exchange to bind, can be '' for default
+
+=item * routing_key (optional) - a routing key for the binding
+
+=back
+
+Returns a L<Future> which resolves with ($queue) on
+completion.
+
+=cut
+
+sub unbind_exchange {
+    my $self = shift;
+    my %args = @_;
+    die "No exchange specified" unless exists $args{exchange};
+	my $ch = delete $args{channel} or die "No channel provided";
+
+    # Attempt to unbind after we've successfully declared the exchange.
+	retain_future($self->future->then(sub {
+		my $f = $ch->loop->new_future;
+		$ch->debug_printf("Unbinding queue [%s] from exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
+
+		my $frame = Net::AMQP::Frame::Method->new(
+			method_frame => Net::AMQP::Protocol::Queue::Unbind->new(
+				queue       => Net::AMQP::Value::String->new($self->queue_name),
+				exchange    => Net::AMQP::Value::String->new($args{exchange}),
+				(exists($args{routing_key}) ? ('routing_key' => Net::AMQP::Value::String->new($args{routing_key})) : ()),
+				ticket      => 0,
+				nowait      => 0,
+			)
+		);
+		$ch->push_pending(
+			'Queue::UnbindOk' => [ $f, $self ],
+		);
+		$ch->closure_protection($f);
+		$ch->send_frame($frame);
+		$f
+	}));
+}
+
 =head2 delete
 
 Deletes this queue.
