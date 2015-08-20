@@ -5,7 +5,7 @@ use warnings;
 
 use parent qw(IO::Async::Notifier);
 
-our $VERSION = '0.030';
+our $VERSION = '0.031';
 
 =head1 NAME
 
