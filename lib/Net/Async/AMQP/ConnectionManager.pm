@@ -377,10 +377,10 @@ sub request_connection {
 						} @{$self->{closed_channel}};
 
 						# ... even the active ones
-						for my $k (sort keys $self->{channel_by_key}) {
+						for my $k (sort keys %{$self->{channel_by_key}}) {
 							List::UtilsBy::extract_by {
 								Scalar::Util::refaddr($_->amqp) eq $ref
-							} map @{$self->{channel_by_key}{$k}};
+							} @{$self->{channel_by_key}{$k}};
 						}
 					}
 				);
