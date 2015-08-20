@@ -465,9 +465,14 @@ sub on_close {
 	# ACK the close first - we have to send a close-ok
 	# before it's legal to reopen this channel ID
 	retain_future(
-		$self->send_frame(
-			Net::AMQP::Frame::Method->new(
-				method_frame => Net::AMQP::Protocol::Channel::CloseOk->new(
+		(
+			  # If we initiated the close, then the CloseOk comes from the server
+			  $self->{closing}
+			? Future->done
+			: $self->send_frame(
+				Net::AMQP::Frame::Method->new(
+					method_frame => Net::AMQP::Protocol::Channel::CloseOk->new(
+					)
 				)
 			)
 		)->then(sub {
@@ -520,6 +525,13 @@ sub close {
 	my $self = shift;
 	my %args = @_;
 	$self->debug_printf("Close channel %d", $self->id);
+
+	# There's a slight chance we'll get called after being
+	# removed from the loop, since we wanted to close anyway then
+	# don't treat that as an error
+	return Future->done if $self->{closing} or !$self->loop;
+
+	$self->{closing} = 1;
 
 	my $f = $self->loop->new_future;
 	my $frame = Net::AMQP::Frame::Method->new(
