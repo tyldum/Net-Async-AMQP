@@ -361,14 +361,27 @@ sub request_connection {
 						# Drop this connection on close.
 						my ($ev) = @_;
 						eval { $ev->unsubscribe; };
+						my $ref = Scalar::Util::refaddr($mq);
 						List::UtilsBy::extract_by {
-							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
+							Scalar::Util::refaddr($_) eq $ref
 						} @{$self->{available_connections}};
 
 						# Also remove from the full list...
 						List::UtilsBy::extract_by {
-							Scalar::Util::refaddr($_) eq Scalar::Util::refaddr($mq)
+							Scalar::Util::refaddr($_) eq $ref
 						} @{$self->{full_connections}};
+
+						# ... and any channels we had stashed
+						List::UtilsBy::extract_by {
+							Scalar::Util::refaddr($_->[0]) eq $ref
+						} @{$self->{closed_channel}};
+
+						# ... even the active ones
+						for my $k (sort keys $self->{channel_by_key}) {
+							List::UtilsBy::extract_by {
+								Scalar::Util::refaddr($_->amqp) eq $ref
+							} map @{$self->{channel_by_key}{$k}};
+						}
 					}
 				);
 				my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
@@ -475,6 +488,10 @@ sub on_channel_close {
 
 	$self->debug_printf("Adding closed channel %d back to the available list", $ch->id);
 	my $amqp = $ch->amqp or die "This channel (" . $ch->id . ") has no AMQP connection";
+
+	# We don't want to do anything with this channel if the parent connection is closed
+	return unless $self->connection_valid($amqp);
+
 	push @{$self->{closed_channel}}, [ $amqp, $ch->id ];
 
 	# If this connection was in the full list, add it back to the available
@@ -493,13 +510,30 @@ Releases the given channel back to our channel pool.
 
 sub release_channel {
 	my ($self, $ch) = @_;
-	return $self unless $ch;
+	return $self unless $ch && $ch->amqp && $self->connection_valid($ch->amqp);
 
 	$self->debug_printf("Releasing channel %d", $ch->id);
 	my $args = $self->{channel_args}{$ch->id};
 	my $k = $self->key_for_args($args);
 	push @{$self->{channel_by_key}{$k}}, $ch;
 	$self
+}
+
+=head2 connection_valid
+
+Returns true if this connection is one we know about, false if it's
+closed or otherwise not usable.
+
+=cut
+
+sub connection_valid {
+	my ($self, $amqp) = @_;
+	my $ref = Scalar::Util::refaddr($amqp);
+	return (
+		grep {
+			Scalar::Util::refaddr($_) eq $ref
+		} @{$self->{available_connections}}, @{$self->{full_connections}}
+	) ? 1 : 0;
 }
 
 =head2 add
