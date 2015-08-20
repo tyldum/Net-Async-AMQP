@@ -11,6 +11,11 @@ Revision history for {{$dist->name}}
 	* More cleanup in Net::Async::ConnectionManager when channels and/or connections
 	are closed.
 
+0.030     2015-05-01 19:29:16+01:00 Europe/London
+	Features:
+	* Support more options when publishing messages (including message
+	expiration, thanks to Naveen Nathan for the patch)
+
 0.029     2015-04-20 01:11:17+01:00 Europe/London
 	Features:
 	* Helper functions in Net::Async::AMQP::Utils for converting status codes
