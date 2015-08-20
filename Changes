@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.031     2015-08-20 02:50:43+01:00 Europe/London
 	Features:
 	* Support more options when publishing messages (including message
 	expiration, thanks to Naveen Nathan for the patch)
