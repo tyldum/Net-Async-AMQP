@@ -50,6 +50,7 @@ use Future::Utils qw(call try_repeat fmap_void);
 use Time::HiRes ();
 use Scalar::Util ();
 use List::UtilsBy ();
+use Variable::Disposition qw(retain_future);
 
 use Net::Async::AMQP;
 use Net::Async::AMQP::ConnectionManager::Channel;
@@ -149,6 +150,7 @@ sub request_channel {
 	my $k = $self->key_for_args(\%args);
 	if(exists $self->{channel_by_key}{$k} && @{$self->{channel_by_key}{$k}}) {
 		my $ch = shift @{$self->{channel_by_key}{$k}};
+		return $self->request_channel(%args) unless $ch->loop && !$ch->is_closed && !$ch->{closing};
 		$self->debug_printf("Assigning %d from by_key cache", $ch->id);
 		return Future->wrap(
 			Net::Async::AMQP::ConnectionManager::Channel->new(
@@ -187,6 +189,9 @@ sub request_channel {
 					# No spare IDs, so record this to avoid hitting this MQ connection
 					# on the next request as well
 					$self->mark_connection_full($mq->amqp);
+
+					# Just in case...
+					delete $self->{pending_connection};
 
 					# We can safely fail at this point, since we're in a loop and the
 					# next iteration should get a new MQ connection to try with
@@ -348,62 +353,66 @@ sub request_connection {
 
 	$self->debug_printf("New connection is required");
 	my $timeout = $self->connect_timeout;
-	Future->wait_any(
-		$self->{pending_connection} = $self->connect(
-			%{$self->next_host}
-		)->on_ready(sub {
-			delete $self->{pending_connection};
-		})->transform(
-			done => sub {
-				my $mq = shift;
-				$mq->bus->subscribe_to_event(
-					close => sub {
-						# Drop this connection on close.
-						my ($ev) = @_;
-						eval { $ev->unsubscribe; };
-						my $ref = Scalar::Util::refaddr($mq);
-						List::UtilsBy::extract_by {
-							Scalar::Util::refaddr($_) eq $ref
-						} @{$self->{available_connections}};
-
-						# Also remove from the full list...
-						List::UtilsBy::extract_by {
-							Scalar::Util::refaddr($_) eq $ref
-						} @{$self->{full_connections}};
-
-						# ... and any channels we had stashed
-						List::UtilsBy::extract_by {
-							Scalar::Util::refaddr($_->[0]) eq $ref
-						} @{$self->{closed_channel}};
-
-						# ... even the active ones
-						for my $k (sort keys %{$self->{channel_by_key}}) {
+	retain_future(
+		Future->wait_any(
+			$self->{pending_connection} = $self->connect(
+				%{$self->next_host}
+			)->on_ready(sub {
+				delete $self->{pending_connection};
+			})->transform(
+				done => sub {
+					my $mq = shift;
+					$mq->bus->subscribe_to_event(
+						close => sub {
+							# Drop this connection on close.
+							my ($ev) = @_;
+							eval { $ev->unsubscribe; };
+							my $ref = Scalar::Util::refaddr($mq);
 							List::UtilsBy::extract_by {
-								Scalar::Util::refaddr($_->amqp) eq $ref
-							} @{$self->{channel_by_key}{$k}};
+								Scalar::Util::refaddr($_) eq $ref
+							} @{$self->{available_connections}};
+
+							# Also remove from the full list...
+							List::UtilsBy::extract_by {
+								Scalar::Util::refaddr($_) eq $ref
+							} @{$self->{full_connections}};
+
+							# ... and any channels we had stashed
+							List::UtilsBy::extract_by {
+								Scalar::Util::refaddr($_->[0]) eq $ref
+							} @{$self->{closed_channel}};
+
+							# ... even the active ones
+							for my $k (sort keys %{$self->{channel_by_key}}) {
+								List::UtilsBy::extract_by {
+									Scalar::Util::refaddr($_->amqp) eq $ref
+								} @{$self->{channel_by_key}{$k}};
+							}
 						}
-					}
-				);
-				my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
-					amqp    => $mq,
-					manager => $self,
-				);
-				push @{$self->{available_connections}}, $mq;
-				$conn
-			}
-		)->set_label(
-			'Connect to MQ server'
-		),
-		( # Cancel the attempt if the timeout expires
-			$timeout ?
-			$self->loop->timeout_future(
-				after => $self->connect_timeout,
-			)->on_fail(sub {
-				$self->{pending_connection}->cancel if $self->{pending_connection} && !$self->{pending_connection}->is_ready;
-			})
-			# ... if we had a timeout
-			: ()
-		)
+					);
+					my $conn = Net::Async::AMQP::ConnectionManager::Connection->new(
+						amqp    => $mq,
+						manager => $self,
+					);
+					push @{$self->{available_connections}}, $mq;
+					$conn
+				}
+			)->set_label(
+				'Connect to MQ server'
+			),
+			( # Cancel the attempt if the timeout expires
+				$timeout ?
+				$self->loop->timeout_future(
+					after => $self->connect_timeout,
+				)->on_fail(sub {
+					$self->{pending_connection}->cancel if $self->{pending_connection} && !$self->{pending_connection}->is_ready;
+				})
+				# ... if we had a timeout
+				: ()
+			)
+		)->on_ready(sub {
+			delete $self->{pending_connection}
+		})
 	)
 }
 
