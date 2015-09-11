@@ -5,7 +5,7 @@ use warnings;
 
 use parent qw(IO::Async::Notifier);
 
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 
 =head1 NAME
 
@@ -26,11 +26,13 @@ Net::Async::AMQP - provides client interface to AMQP using L<IO::Async>
 =head1 DESCRIPTION
 
 Does AMQP things. Note that the API may change before the stable 1.000
-release - L</SEE ALSO> has some alternative modules if you're looking for
-something that has been around for longer.
+release - L</ALTERNATIVE AMQP IMPLEMENTATIONS> are listed below if you want
+to evaluate other options.
 
 If you want a higher-level API which manages channels and connections, try
 L<Net::Async::AMQP::ConnectionManager>.
+
+Examples are in the C<examples/> directory.
 
 =head2 AMQP support
 
@@ -1319,6 +1321,41 @@ If we receive an unsolicited frame from the server this event will be raised:
   }
  )
 
+=head1 ALTERNATIVE AMQP IMPLEMENTATIONS
+
+As usual there's a few other options:
+
+=over 4
+
+=item * L<Net::RabbitMQ> - basic bindings for librabbitmq
+
+=item * L<Net::AMQP::RabbitMQ> - a fork of Net::RabbitMQ ("uses a newer version of librabbitmq and fixes some bugs")
+
+=item * L<Net::RabbitMQ::Client> - yet another set of bindings for librabbitmq, includes a "Simple" wrapper implementation as well
+
+=item * L<Crixa> - wrapper over L<Net::AMQP::RabbitMQ>
+
+=item * L<Net::RabbitMQ::Channel> - another wrapper around L<Net::RabbitMQ>
+
+=item * L<Net::RabbitMQ::Java> - uses the official Java client via L<Inline::Java>
+
+=item * L<Net::Thumper> - sync client based on L<Net::AMQP>, no channel support
+
+=item * L<POE::Component::Client::AMQP> - provides a L<POE> component based on L<Net::AMQP>.
+
+=item * L<AnyEvent::RabbitMQ> - uses L<Net::AMQP> to provide an L<AnyEvent> implementation.
+
+=item * L<Net::RabbitFoot> - wrapper around L<AnyEvent::RabbitMQ>
+
+=item * L<AnyMQ::AMQP> - provides AMQP support for the L<AnyMQ> abstraction, via L<AnyEvent::RabbitMQ>
+
+=back
+
+Modules based on librabbitmq-c are probably fine for simple sync tasks, but I wouldn't recommend them for
+any async work. In contrast, the L<Net::AMQP> protocol module generates all the classes and methods directly
+from the AMQP spec, so it's an excellent base on which to develop the transport module (as in the case of
+L<Net::Async::AMQP>).
+
 =head1 SEE ALSO
 
 =over 4
@@ -1326,13 +1363,9 @@ If we receive an unsolicited frame from the server this event will be raised:
 =item * L<Net::AMQP> - this does all the hard work of converting the XML protocol
 specification into appropriate Perl methods and classes.
 
-=item * L<Net::RabbitMQ> - probably bindings for librabbitmq
+=item * L<Net::RabbitMQ::Management::API> - doesn't do AMQP, but provides sync (LWP-based) access to RabbitMQ's HTTP API
 
-=item * L<Net::AMQP::RabbitMQ> - librabbitmq support
-
-=item * L<POE::Component::Client::AMQP> - POE equivalent of this module
-
-=item * L<AnyEvent::RabbitMQ>
+=item * L<Test::Net::RabbitMQ> - provides a basic server implementation for testing
 
 =back
 
