@@ -229,7 +229,7 @@ sub queue_declare {
 				my ($amqp, $frame) = @_;
 				my $method_frame = $frame->method_frame;
 				$q->queue_name($method_frame->queue);
-				my $messages = $method_frame->messages;
+				my $messages = $method_frame->message_count;
 				my $consumer_count = $method_frame->consumer_count;
 				$ready->done() unless $ready->is_ready;
 				$f->done($q, $messages, $consumer_count) unless $f->is_ready;
