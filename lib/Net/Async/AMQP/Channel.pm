@@ -478,11 +478,19 @@ sub on_close {
 				)
 			)
 		)->then(sub {
+			# Any remaining consumers need to be cancelled at this point
+			$self->bus->invoke_event(
+				'cancel',
+				ctag => $_,
+			) for keys @{$self->{consumer_tags}};
+			$self->{consumer_tags} = {};
+
 			# It's important that the MQ instance knows
 			# about the channel closure first before we
 			# go ahead and dispatch events, since any
 			# subscribed handlers might go ahead and
 			# attempt to open the channel again immediately.
+
 			$self->amqp->channel_closed($self->id);
 			$self->bus->invoke_event(
 				'close',
