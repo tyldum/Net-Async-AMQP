@@ -161,6 +161,58 @@ sub cancel {
 	}));
 }
 
+sub consumer {
+    my $self = shift;
+    my %args = @_;
+
+	my $ch = delete $self->{channel} or die "No channel";
+	my $ctag = (delete $args{consumer_tag}) // '';
+	my $on_message = delete $args{on_message} || sub { };
+	my $on_cancel = delete $args{on_cancel} || sub { };
+	my @ev;
+	$ch->bus->subscribe_to_event(
+		@ev = (
+			# Deliver any matching messages to our callback
+			message => sub {
+				my ($ev, $type, $payload, $incoming_ctag, $dtag, $rkey) = @_;
+				return unless $incoming_ctag eq $ctag;
+				$on_message->(
+					type => $type,
+					payload => $payload,
+					consumer_tag => $ctag,
+					delivery_tag => $dtag,
+					routing_key => $rkey
+				);
+			},
+			# Drop event handlers and call cancellation callback on cancel
+			cancel => sub {
+				my ($ev, %args) = @_;
+				return unless $args{ctag} eq $ctag;
+				# Avoid potential race between ->cancel and the consumer future being cancelled
+				eval {
+					$ch->bus->unsubscribe_from_events(@ev);
+				};
+				$on_cancel->(
+					consumer_tag => $ctag
+				);
+			}
+		)
+	);
+	$self->listen(
+		%args,
+		channel => $ch,
+		consumer_tag => $ctag,
+	)->on_ready(sub {
+		return if shift->is_done;
+		eval {
+			$ch->bus->unsubscribe_from_events(@ev);
+		};
+		$on_cancel->(
+			consumer_tag => $ctag
+		)
+	});
+}
+
 =head2 bind_exchange
 
 Binds this queue to an exchange.
