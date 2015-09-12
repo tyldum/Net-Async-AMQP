@@ -1,6 +1,14 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	Features:
+	* Queue declare now resolves with number of messages and consumers as well
+	as the queue instance.
+
+	Bugs fixed:
+	* Some connection handling issues
+
+	Also updated the list of alternative AMQP implementations.
 
 0.031     2015-08-20 02:50:43+01:00 Europe/London
 	Features:

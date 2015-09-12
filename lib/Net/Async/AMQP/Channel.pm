@@ -186,12 +186,12 @@ sub exchange_bind {
 
 =head2 queue_declare
 
-Returns a L<Future> which will resolve with the
-new L<Net::Async::AMQP::Queue> instance once complete.
+Returns a L<Future> which will resolve with the new L<Net::Async::AMQP::Queue> instance,
+the number of messages in the queue, and the number of consumers.
 
  $ch->queue_declare(
   queue      => 'some_queue',
- ) ==> $q
+ ) ==> ($q, $message_count, $consumer_count)
 
 =cut
 
@@ -229,8 +229,10 @@ sub queue_declare {
 				my ($amqp, $frame) = @_;
 				my $method_frame = $frame->method_frame;
 				$q->queue_name($method_frame->queue);
+				my $messages = $method_frame->messages;
+				my $consumer_count = $method_frame->consumer_count;
 				$ready->done() unless $ready->is_ready;
-				$f->done($q) unless $f->is_ready;
+				$f->done($q, $messages, $consumer_count) unless $f->is_ready;
 			}
 		);
 		$self->closure_protection($f);
