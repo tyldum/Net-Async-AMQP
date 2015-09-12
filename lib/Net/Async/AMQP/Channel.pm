@@ -660,7 +660,10 @@ sub next_pending {
 
 	return $self unless $frame->can('method_frame') && (my $method_frame = $frame->method_frame);
 	my $type = amqp_frame_type($frame);
-	if($type eq 'Basic::Cancel') {
+	if($type eq 'Basic::ConsumeOk') {
+		my $ctag = $method_frame->consumer_tag;
+		$self->{consumer_tags}{$ctag} = 1;
+	} elsif($type eq 'Basic::Cancel') {
 		my ($ctag) = ($method_frame->consumer_tag);
 		$self->debug_printf("Cancel $ctag");
 		$self->bus->invoke_event(
@@ -672,6 +675,7 @@ sub next_pending {
 		$self->bus->invoke_event(
 			listener_stop => $ctag
 		);
+		delete $self->{consumer_tags}{$ctag};
 	}
 
 	# Message delivery, part 3: The "Deliver" message.
