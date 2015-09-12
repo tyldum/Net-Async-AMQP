@@ -660,7 +660,7 @@ sub next_pending {
 
 	return $self unless $frame->can('method_frame') && (my $method_frame = $frame->method_frame);
 	my $type = amqp_frame_type($frame);
-	if($type eq 'Basic::CancelOk') {
+	if($type eq 'Basic::Cancel') {
 		my ($ctag) = ($method_frame->consumer_tag);
 		$self->debug_printf("Cancel $ctag");
 		$self->bus->invoke_event(
