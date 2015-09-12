@@ -98,14 +98,14 @@ sub queue_declare {
 	my ($self, %args) = @_;
 	$self->channel->queue_declare(%args)->transform(
 		done => sub {
-			my ($q) = @_;
+			my ($q, @extra) = @_;
 			# Ensure that this wrapped channel is used
 			# as the stored channel value. This means
 			# the channel holds the queue, we hold a weakref
 			# to the channel, and the queue holds a strong
 			# ref to our channel wrapper.
 			$q->configure(channel => $self);
-			$q
+			return ($q, @extra);
 		}
 	)
 }
