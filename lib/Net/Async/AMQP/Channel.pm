@@ -94,8 +94,11 @@ sub confirm_mode {
 	my $self = shift;
 	my %args = @_;
 	$self->debug_printf("Enabling confirm mode");
+	die "already requested confirm_mode for this channel" if $self->{confirm_mode};
 
 	my $f = $self->loop->new_future;
+	$self->{delivery_tag} = 0;
+	$self->{confirm_mode} = $f;
 	my $nowait = $self->nowait_from_args(%args);
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Confirm::Select->new(
