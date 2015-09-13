@@ -53,7 +53,7 @@ $cm->add(
 				})
 			})
 		})->get;
-	}, qr/closed/, 'have channel exception when binding to deleted queue');
+	}, qr/NOT_FOUND/, 'have channel exception when binding to deleted queue');
 	is(exception {
 		is(
 			$cm->request_channel(
