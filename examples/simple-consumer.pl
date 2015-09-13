@@ -11,7 +11,7 @@ $loop->add(
 );
 my $true = Net::AMQP::Value->true;
 $mq->connect(
-	host  => 'localhost',
+	host  => $ENV{NET_ASYNC_AMQP_HOST} // 'localhost',
 	user  => 'guest',
 	pass  => 'guest',
 	vhost => '/',
