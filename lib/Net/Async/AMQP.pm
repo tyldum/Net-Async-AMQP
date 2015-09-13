@@ -415,8 +415,8 @@ sub on_closed {
 	for my $ch (values %{$self->{channel_by_id}}) {
 		$ch->bus->invoke_event(
 			'close',
-			# code    => 999,
-			message => 'Connection closed: ' . $reason,
+			code    => undef,
+			reason  => 'Connection closed: ' . $reason,
 		);
 		$self->channel_closed($ch->id);
 	}

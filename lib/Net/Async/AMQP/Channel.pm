@@ -495,7 +495,7 @@ sub on_close {
 			$self->bus->invoke_event(
 				'close',
 				code => $frame->reply_code,
-				message => $frame->reply_text,
+				reason => $frame->reply_text,
 			);
 			Future->done
 		})
