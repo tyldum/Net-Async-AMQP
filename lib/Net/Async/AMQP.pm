@@ -376,22 +376,6 @@ Called whenever there's data available to be read.
 
 sub on_read {
 	my ($self, $stream, $buffref, $eof) = @_;
-	# Frame dumping support - not that useful yet, so it's disabled
-	if(0) {
-		my $mem = $$buffref;
-		$self->dump_frame($mem);
-		my $idx = 0;
-		while(length $mem) {
-			my $hex = join ' ', unpack 'H2'x16, my $bytes = substr $mem, 0, 16, '';
-			substr $hex, 8 * 3, 0, '  ';
-			my $asc = join '', map /([[:print:]])/ ? $1 : '.', split //, $bytes;
-			substr $asc, 8, 0, ' ';
-			printf "%8d:  %-52.52s %s\n", $idx, $hex, $asc;
-			$idx += length($asc);
-		}
-		print "\n";
-		$self->debug_printf("At EOF") if $eof;
-	}
 
 	$self->last_frame_time(Time::HiRes::time);
 
