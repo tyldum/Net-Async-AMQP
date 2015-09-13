@@ -835,7 +835,7 @@ sub closure_protection {
 				return;
 			}
 
-			$f->fail(closed => %args) unless $f->is_ready;
+			$f->fail($args{reason}, 'amqp', $args{code}) unless $f->is_ready;
 		})
 	);
 
