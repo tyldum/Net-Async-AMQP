@@ -427,7 +427,8 @@ sub on_closed {
 
 	$self->stream->close if $self->stream;
 	for (qw(stream heartbeat_send_timer heartbeat_receive_timer)) {
-		$self->remove_child(delete $self->{$_}) if $self->{$_};
+		$self->debug_printf("Remove child %s", $_);
+		(delete $self->{$_})->remove_from_parent if $self->{$_};
 	}
 	$self->bus->invoke_event(close => $reason)
 }
