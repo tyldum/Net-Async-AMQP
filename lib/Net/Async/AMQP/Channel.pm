@@ -477,6 +477,9 @@ sub on_close {
 			) for keys @{$self->{consumer_tags}};
 			$self->{consumer_tags} = {};
 
+			$_->fail('channel closed') for grep !$_->is_ready, map $_->[1], @{$self->{published}};
+			$self->{published} = [];
+
 			# It's important that the MQ instance knows
 			# about the channel closure first before we
 			# go ahead and dispatch events, since any
