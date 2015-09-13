@@ -721,6 +721,31 @@ sub next_pending {
 	return $self;
 }
 
+sub extract_published {
+	my ($self, $dtag, $multiple) = @_;
+	if($multiple) {
+		my @msg;
+		while(@{$self->{published}}) {
+			my $msg = shift @{$self->{published}};
+			# Nonzero dtag means "up to and including this message"
+			die 'ack for dtag ' . $dtag . ' but our earliest message is ' . $msg->[0] if $dtag && $dtag < $msg->[0];
+
+			# with dtag=0 that's "everything you've got". this is fundamentally
+			# flawed since the server may not have even received the most recent
+			# items... might work if the server *always* uses dtag=0, I guess
+			push @msg, $msg;
+			last if $dtag == $msg->[0];
+		}
+		return @msg;
+	}
+	# Single-ack *probably* handles things in order, but the spec does not seem
+	# to mandate this - better to be safe
+	for my $idx (0..$#{$self->{published}}) {
+		return splice @{$self->{published}}, $idx, 1 if $self->{published}[$idx][0] == $dtag;
+	}
+	die 'ack for dtag ' . $dtag . ' but not found in our pending list (we had ' . @{$self->{published}} . ' pending messages)';
+}
+
 =head1 METHODS - Accessors
 
 =cut
