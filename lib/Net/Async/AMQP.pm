@@ -674,7 +674,7 @@ sub close {
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Connection::Close->new(
 			reply_code => $args{code} // 320,
-			reply_text => $args{text} // 'Request connection close',
+			reply_text => $args{reason} // 'Request connection close',
 		),
 	);
 	$self->push_pending(
@@ -1086,8 +1086,8 @@ sub process_frame {
 		# A peer that receives an invalid heartbeat frame MUST raise a connection
 		# exception with reply code 501 (frame error)
 		$self->close(
-			reply_code => 501,
-			reply_text => 'Frame error - heartbeat should have channel 0'
+			code   => 501,
+			reason => 'Frame error - heartbeat should have channel 0'
 		) if $frame->channel;
 
 		return $self;
