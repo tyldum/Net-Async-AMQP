@@ -22,6 +22,191 @@ our @EXPORT_OK = our @EXPORT = qw(
 	amqp_frame_type
 );
 
+my %extra = (
+	'Connection::Start' => sub {
+		sprintf 'AMQP %d.%d, { %s }, auth "%s", locales "%s"',
+			$_->version_major, 
+			$_->version_minor, 
+			join(', ', map { $_ . ' = "' . $_[0]->server_properties->{$_} . '"' } keys %{$_->server_properties}),
+			$_->mechanisms,
+			$_->locales
+	},
+	'Connection::StartOk' => sub {
+		sprintf '{ %s }, auth "%s", response "%s", locale "%s"',
+			join(', ', map { $_ . ' = "' . $_[0]->client_properties->{$_} . '"' } keys %{$_->client_properties}),
+			$_->mechanism,
+			$_->response,
+			$_->locale
+	},
+	'Connection::Secure' => sub {
+		sprintf 'challenge "%s"',
+			$_->challenge
+	},
+	'Connection::SecureOk' => sub {
+		sprintf 'response "%s"',
+			$_->response
+	},
+	'Connection::Tune' => sub {
+		sprintf 'channels %d, frame max %d, heartbeat %d',
+			$_->channel_max,
+			$_->frame_max,
+			$_->heartbeat,
+	},
+	'Connection::TuneOk' => sub {
+		sprintf 'channels %d, frame max %d, heartbeat %d',
+			$_->channel_max,
+			$_->frame_max,
+			$_->heartbeat
+	},
+	'Connection::Open' => sub {
+		sprintf 'vhost "%s"',
+			$_->virtual_host
+	},
+	'Connection::Close' => sub {
+		sprintf 'code %d, text "%s", class %d, method %d',
+			$_->reply_code,
+			$_->reply_text,
+			$_->class_id,
+			$_->method_id
+	},
+	'Channel::Flow' => sub {
+		sprintf '%s',
+			$_->active ? 'enable' : 'disable'
+	},
+	'Channel::Close' => sub {
+		sprintf 'code %d, text "%s", class %d, method %d',
+			$_->reply_code,
+			$_->reply_text,
+			$_->class_id,
+			$_->method_id
+	},
+	'Exchange::Declare' => sub {
+		sprintf 'exchange "%s", type "%s", passive = %s, durable = %s, auto-delete = %s, internal = %s, nowait = %s, arguments { %s }',
+			$_->exchange,
+			$_->type,
+			$_->passive ? 'yes' : 'no',
+			$_->durable ? 'yes' : 'no',
+			$_->auto_delete ? 'yes' : 'no',
+			$_->internal ? 'yes' : 'no',
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Exchange::Delete' => sub {
+		sprintf 'exchange "%s", if-unused "%s", nowait = %s',
+			$_->exchange,
+			$_->if_unused ? 'yes' : 'no',
+			$_->nowait ? 'yes' : 'no',
+	},
+	'Exchange::Bind' => sub {
+		sprintf 'destination "%s", source "%s", rkey "%s", nowait = %s, arguments { %s }',
+			$_->destination,
+			$_->source,
+			$_->routing_key,
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Exchange::Unbind' => sub {
+		sprintf 'destination "%s", source "%s", rkey "%s", nowait = %s, arguments { %s }',
+			$_->destination,
+			$_->source,
+			$_->routing_key,
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Queue::Declare' => sub {
+		sprintf 'queue "%s", passive = %s, durable = %s, exclusive = %s, auto-delete = %s, nowait = %s, arguments { %s }',
+			$_->queue,
+			$_->passive ? 'yes' : 'no',
+			$_->durable ? 'yes' : 'no',
+			$_->exclusive ? 'yes' : 'no',
+			$_->auto_delete ? 'yes' : 'no',
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Queue::DeclareOk' => sub {
+		sprintf 'queue "%s", messages %d, consumers %d',
+			$_->queue,
+			$_->message_count,
+			$_->consumer_count,
+	},
+	'Queue::Bind' => sub {
+		sprintf 'queue "%s", exchange "%s", rkey "%s", nowait = %s, arguments { %s }',
+			$_->queue,
+			$_->exchange,
+			$_->routing_key,
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Queue::Unbind' => sub {
+		sprintf 'queue "%s", exchange "%s", rkey "%s", nowait = %s, arguments { %s }',
+			$_->queue,
+			$_->exchange,
+			$_->routing_key,
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Queue::Delete' => sub {
+		sprintf 'queue "%s", if-unused = %s, if-empty = %s, nowait = %s',
+			$_->queue,
+			$_->if_unused ? 'yes' : 'no',
+			$_->if_empty ? 'yes' : 'no',
+			$_->nowait ? 'yes' : 'no',
+	},
+	'Queue::DeleteOk' => sub {
+		sprintf 'messages %d',
+			$_->message_count,
+	},
+	'Basic::Qos' => sub {
+		sprintf 'size %d, count %d, global = %s',
+			$_->prefetch_size,
+			$_->prefetch_count,
+			$_->global ? 'yes' : 'no',
+	},
+	'Basic::Consume' => sub {
+		sprintf 'queue "%s", ctag "%s", no-local = %s, no-ack = %s, exclusive = %s, nowait = %s, arguments { %s }',
+			$_->queue,
+			$_->consumer_tag,
+			$_->no_local ? 'yes' : 'no',
+			$_->no_ack ? 'yes' : 'no',
+			$_->exclusive ? 'yes' : 'no',
+			$_->nowait ? 'yes' : 'no',
+			$_->arguments ? join(', ', map { $_ . ' = "' . $_[0]->arguments->{$_} . '"' } keys %{$_->arguments}) : '',
+	},
+	'Basic::ConsumeOk' => sub {
+		sprintf 'ctag "%s"',
+			$_->consumer_tag,
+	},
+	'Basic::Cancel' => sub {
+		sprintf 'ctag "%s", nowait = %s',
+			$_->consumer_tag,
+			$_->nowait ? 'yes' : 'no',
+	},
+	'Basic::CancelOk' => sub {
+		sprintf 'ctag "%s"',
+			$_->consumer_tag
+	},
+	'Basic::Return' => sub {
+		sprintf 'code %d, text "%s", exchange "%s", rkey "%s"',
+			$_->reply_code,
+			$_->reply_text,
+			$_->exchange,
+			$_->routing_key
+	},
+	'Basic::Deliver' => sub {
+		sprintf 'ctag "%s", dtag %s, redelivered = %s, exchange "%s", rkey "%s"',
+			$_->consumer_tag,
+			$_->delivery_tag,
+			$_->redelivered ? 'yes' : 'no',
+			$_->exchange,
+			$_->routing_key
+	},
+	'Basic::Ack' => sub {
+		sprintf 'dtag %s, multiple = %s',
+			$_->delivery_tag,
+			$_->multiple ? 'yes' : 'no',
+	},
+);
+
 =head2 amqp_frame_info
 
 Returns a string with information about the given AMQP frame.
@@ -30,12 +215,11 @@ Returns a string with information about the given AMQP frame.
 
 sub amqp_frame_info($) {
 	my ($frame) = @_;
-	my $txt = amqp_frame_type($frame);
+	my $type = amqp_frame_type($frame);
+	my $txt = $type;
 	$txt .= ', channel ' . $frame->channel if $frame->channel;
 	if($frame->can('method_frame') && (my $method_frame = $frame->method_frame)) {
-		#note($_);
-	} else {
-
+		$txt .= " " . $extra{$type}->($method_frame, $frame) for grep exists $extra{$type}, $method_frame;
 	}
 	return $txt;
 }
