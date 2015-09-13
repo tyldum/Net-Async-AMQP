@@ -201,7 +201,9 @@ sub consumer {
 		%args,
 		channel => $ch,
 		consumer_tag => $ctag,
-	)->on_ready(sub {
+	)->on_done(sub {
+		$ctag = $_[1];
+	})->on_ready(sub {
 		return if shift->is_done;
 		eval {
 			$ch->bus->unsubscribe_from_events(@ev);
