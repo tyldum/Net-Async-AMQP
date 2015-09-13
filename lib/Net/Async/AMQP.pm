@@ -748,6 +748,11 @@ sub next_pending {
 	my ($self, $type, $frame) = @_;
 	$self->debug_printf("Check next pending for %s", $type);
 
+	if($type eq 'Connection::Close') {
+		$self->on_closed($frame->method_frame->reply_text);
+		return $self;
+	}
+
 	if(my $next = shift @{$self->{pending}{$type} || []}) {
 		# We have a registered handler for this frame type. This usually
 		# means that we've sent a frame and are awaiting a response.
