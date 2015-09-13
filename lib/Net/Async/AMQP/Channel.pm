@@ -466,12 +466,12 @@ sub on_close {
 					)
 				)
 			)
-		)->then(sub {
+		)->on_ready(sub {
 			# Any remaining consumers need to be cancelled at this point
 			$self->bus->invoke_event(
 				'cancel',
 				ctag => $_,
-			) for keys @{$self->{consumer_tags}};
+			) for keys %{$self->{consumer_tags}};
 			$self->{consumer_tags} = {};
 
 			$_->fail('channel closed') for grep !$_->is_ready, map $_->[1], @{$self->{published}};
