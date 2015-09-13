@@ -162,10 +162,9 @@ sub cancel {
 }
 
 sub consumer {
-    my $self = shift;
-    my %args = @_;
+    my ($self, %args) = @_;
 
-	my $ch = delete $self->{channel} or die "No channel";
+	my $ch = (delete $args{channel}) // die "No channel";
 	my $ctag = (delete $args{consumer_tag}) // '';
 	my $on_message = delete $args{on_message} || sub { };
 	my $on_cancel = delete $args{on_cancel} || sub { };
