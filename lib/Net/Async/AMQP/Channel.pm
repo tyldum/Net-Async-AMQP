@@ -826,7 +826,7 @@ sub closure_protection {
 	$bus->subscribe_to_event(
 		@ev = (close => sub {
 			my ($ev, %args) = @_;
-			$self->debug_printf("Closed channel, code %d, reason: %s", $args{code}, $args{reason});
+			$self->debug_printf("Closed channel, code %s, reason: %s", $args{code} // '(none)', $args{reason});
 			unless($f) {
 				$self->debug_printf("Future has disappeared already, not marking as failed");
 				# We should have unsubscribed already, but do this just in case.
