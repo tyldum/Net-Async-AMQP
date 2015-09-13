@@ -61,7 +61,7 @@ sub listen {
 
     # Attempt to bind after we've successfully declared the exchange.
     retain_future($self->future->then(sub {
-        my $f = $ch->loop->new_future;
+        my $f = $ch->loop->new_future->set_label("listen on " . $self->queue_name);
         $ch->debug_printf("Attempting to listen for events on queue [%s]", $self->queue_name);
 
         my $frame = Net::AMQP::Protocol::Basic::Consume->new(
@@ -138,7 +138,7 @@ sub cancel {
 
     # Attempt to bind after we've successfully declared the exchange.
 	retain_future($self->future->then(sub {
-		my $f = $ch->loop->new_future;
+		my $f = $ch->loop->new_future->set_label("cancel ctag " . $ctag);
 		$ch->debug_printf("Attempting to cancel consumer [%s]", $ctag);
 
 		my $frame = Net::AMQP::Protocol::Basic::Cancel->new(
@@ -252,7 +252,7 @@ sub bind_exchange {
 
     # Attempt to bind after we've successfully declared the exchange.
 	retain_future($self->future->then(sub {
-		my $f = $ch->loop->new_future;
+		my $f = $ch->loop->new_future->set_label(sprintf "bind exchange [%s] to exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 		$ch->debug_printf("Binding queue [%s] to exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 
 		my $frame = Net::AMQP::Frame::Method->new(
@@ -311,7 +311,7 @@ sub unbind_exchange {
 
     # Attempt to unbind after we've successfully declared the exchange.
 	retain_future($self->future->then(sub {
-		my $f = $ch->loop->new_future;
+		my $f = $ch->loop->new_future->set_label("unbind exchange [%s] from exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 		$ch->debug_printf("Unbinding queue [%s] from exchange [%s] with rkey [%s]", $self->queue_name, $args{exchange}, $args{routing_key} // '(none)');
 
 		my $frame = Net::AMQP::Frame::Method->new(
@@ -363,7 +363,7 @@ sub delete : method {
 	my $ch = delete $args{channel} or die "No channel provided";
 
 	retain_future($self->future->then(sub {
-		my $f = $ch->loop->new_future;
+		my $f = $ch->loop->new_future->set_label("delete " . $self->queue_name);
 		$ch->debug_printf("Deleting queue [%s]", $self->queue_name);
 
 		my $frame = Net::AMQP::Frame::Method->new(

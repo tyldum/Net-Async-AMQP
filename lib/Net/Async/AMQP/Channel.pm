@@ -96,7 +96,7 @@ sub confirm_mode {
 	$self->debug_printf("Enabling confirm mode");
 	die "already requested confirm_mode for this channel" if $self->{confirm_mode};
 
-	my $f = $self->loop->new_future;
+	my $f = $self->loop->new_future->set_label("set confirm_mode on channel " . $self->id);
 	$self->{delivery_tag} = 0;
 	$self->{confirm_mode} = $f;
 	my $nowait = $self->nowait_from_args(%args);
@@ -151,9 +151,10 @@ sub exchange_declare {
 	die "No exchange specified" unless exists $args{exchange};
 	die "No exchange type specified" unless exists $args{type};
 
+	$args{exchange} //= '';
 	$self->debug_printf("Declaring exchange [%s]", $args{exchange});
 
-	my $f = $self->loop->new_future;
+	my $f = $self->loop->new_future->set_label("declare exchange [" . $args{exchange} . "]");
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Exchange::Declare->new(
 			exchange    => Net::AMQP::Value::String->new($args{exchange}),
@@ -188,7 +189,7 @@ sub exchange_bind {
 
 	$self->debug_printf("Binding exchange [%s] to [%s] with rkey [%s]", $args{source}, $args{destination}, $args{routing_key});
 
-	my $f = $self->loop->new_future;
+	my $f = $self->loop->new_future->set_label("bind exchange [" . $args{source} . "] to [" . $args{destination} . "]" . (exists $args{routing_key} ? (" rkey [" . $args{routing_key} . "]") : ""));
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Exchange::Bind->new(
 			source      => Net::AMQP::Value::String->new($args{source}),
@@ -222,8 +223,8 @@ sub queue_declare {
 	die "No queue specified" unless defined $args{queue};
 
 	$self->future->then(sub {
-		my $f = $self->loop->new_future;
-		my $ready = $self->loop->new_future;
+		my $f = $self->loop->new_future->set_label("declare queue [" . $args{queue} . "]");
+		my $ready = $self->loop->new_future->set_label("queue readiness for [" . $args{queue} . "]");
 		my $q = Net::Async::AMQP::Queue->new(
 			amqp    => $self->amqp,
 			future  => $ready,
@@ -311,7 +312,7 @@ sub publish {
 	die "no exchange" unless exists $args{exchange};
 
 	$self->future->then(sub {
-		my $f = $self->loop->new_future;
+		my $f = $self->loop->new_future->set_label("publish on [" . $args{exchange} . "]");
 		my $dtag = $self->next_dtag;
 		if($self->{confirm_mode}) {
 			push @{$self->{published}}, [ $dtag => $f ];
@@ -379,7 +380,7 @@ sub qos {
 	my %args = @_;
 
 	$self->future->then(sub {
-		my $f = $self->loop->new_future;
+		my $f = $self->loop->new_future->set_label("set qos count " . ($args{prefetch_count} // 0) . " size " . ($args{prefetch_size} // 0));
 		my $channel = $self->id;
 		$self->push_pending(
 			'Basic::QosOk' => [ $f, $self ],
@@ -533,7 +534,7 @@ sub close {
 
 	$self->{closing} = 1;
 
-	my $f = $self->loop->new_future;
+	my $f = $self->loop->new_future->set_label("Close channel " . $self->id);
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Channel::Close->new(
 			reply_code  => $args{code} // 404,
