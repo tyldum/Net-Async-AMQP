@@ -451,6 +451,7 @@ sub on_close {
 	my ($self, $frame) = @_;
 
 	$self->{is_closed} = 1;
+	$self->{future} = Future->fail('closed');
 
 	# ACK the close first - we have to send a close-ok
 	# before it's legal to reopen this channel ID
@@ -533,6 +534,7 @@ sub close {
 	return Future->done if $self->{closing} or !$self->loop;
 
 	$self->{closing} = 1;
+	$self->{future} = Future->fail('closing');
 
 	my $f = $self->loop->new_future->set_label("Close channel " . $self->id);
 	my $frame = Net::AMQP::Frame::Method->new(
