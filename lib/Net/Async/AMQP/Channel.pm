@@ -881,35 +881,39 @@ Takes a L<Future>, returns a L<Future> (probably the same one).
 sub closure_protection {
 	my ($self, $f) = @_;
 	unless($f) {
-		$self->debug_printf("Closure protection requested for future which has already disappeared");
+		$self->debug_printf("Closure protection requested on channel %d for future which has already disappeared", $self->id);
 		return Future->fail(closed => 'future has already been released');
 	}
 
 	# No sense in proceeding if the Future has already completed
-	return $f if $f->is_ready;
+	if($f->is_ready) {
+		$self->debug_printf("Closure protection requested for future %s on channel %d which has already compelted", $f->label, $self->id);
+		return $f;
+	}
 
+	my $id = $self->id;
 	my @ev;
 	my $bus = $self->bus;
 	$bus->subscribe_to_event(
 		@ev = (close => sub {
 			my ($ev, %args) = @_;
-			$self->debug_printf("Closed channel, code %s, reason: %s", $args{code} // '(none)', $args{reason});
-			unless($f) {
+			$self->debug_printf("Closure protection engaging for %s on channel %d, code %s, reason: %s", ($f ? $f->label : "(future which no longer exists)"), $id, $args{code} // '(none)', $args{reason});
+			if($f) {
+				$f->fail($args{reason}, 'amqp', $args{code}) unless $f->is_ready;
+			} else {
 				$self->debug_printf("Future has disappeared already, not marking as failed");
-				# We should have unsubscribed already, but do this just in case.
-				splice @ev;
-				eval { $ev->unsubscribe; };
-				return;
 			}
-
-			$f->fail($args{reason}, 'amqp', $args{code}) unless $f->is_ready;
+			# We should have unsubscribed already, but do this just in case.
+			splice @ev;
+			eval { $ev->unsubscribe; };
 		})
 	);
 
 	# Use return value from ->on_ready, since we may clear $f immediately if the future is already
 	# marked as ready.
 	$f->on_ready(sub {
-		$bus->unsubscribe_from_event(splice @ev);
+		$self->debug_printf("Future %s on channel %d is ready, disengaging closure protection", ($f ? $f->label : "(future which no longer exists)"), $id);
+		eval { $bus->unsubscribe_from_event(splice @ev); };
 		undef $f;
 	});
 }
