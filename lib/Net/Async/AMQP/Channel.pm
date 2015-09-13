@@ -241,6 +241,8 @@ sub queue_declare {
 	})
 }
 
+sub next_dtag { ++shift->{delivery_tag} }
+
 =head2 publish
 
 Publishes a message on this channel.
