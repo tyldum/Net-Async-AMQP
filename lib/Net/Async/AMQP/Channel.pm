@@ -334,18 +334,8 @@ sub publish {
 			content_type     => $args{content_type} // 'application/binary',
 			content_encoding => $args{content_encoding},
 			timestamp        => $args{timestamp} // time,
-			type             => Net::AMQP::Value::String->new($args{type}),
+			type             => Net::AMQP::Value::String->new($args{type} // ''),
 			user_id          => $self->amqp->user,
-			no_ack           => (
-				# inverse flags are a pain... we default to ACK mode.
-				# If the ack parameter is given, this overrides the
-				# setting - so ack => 1 means no_ack => 0, ack => 0 means no_ack => 1,
-				# and lack of ack means no_ack => 0.
-				exists $args{ack}
-				? (
-					$args{ack} ? 0 : 1
-				) : 0
-			),
 #            headers          => {
 #                type => $args{type},
 #            },
