@@ -312,37 +312,11 @@ sub publish {
 
 	$self->future->then(sub {
 		my $f = $self->loop->new_future;
-		{ # When publishing a message, we should expect either an ACK, or a return.
-		  # Since these are mutually exclusive, we also need to remove the pending
-		  # handler for the opposing event once one event has been received. Note
-		  # that this crosslinking gives us an unfortunate cycle which we resolve
-		  # by weakening the opposite handler once we've removed it.
-			my $return;
-			my $ack = sub {
-				my ($amqp, $frame) = @_;
-				my $method_frame = $frame->method_frame;
-				$self->remove_pending('Basic::Return' => $return);
-				$f->done unless $f->is_ready;
-				weaken $return;
-			};
-			$return = sub {
-				my ($amqp, $frame) = @_;
-				my $method_frame = $frame->method_frame;
-				# $self->remove_pending('Basic::Ack' => $ack);
-				$f->fail(
-					$method_frame->reply_text,
-					code     => $method_frame->reply_code,
-					exchange => $method_frame->exchange,
-					rkey     => $method_frame->routing_key
-				) unless $f->is_ready;
-				weaken $ack;
-			};
-			$self->push_pending(
-				'Basic::Return' => $return,
-			);
-			$self->push_pending(
-				'Basic::Ack' => $ack,
-			);
+		my $dtag = $self->next_dtag;
+		if($self->{confirm_mode}) {
+			push @{$self->{published}}, [ $dtag => $f ];
+		} else {
+			$f->done;
 		}
 
 		my @frames = $self->amqp->split_payload(
@@ -717,10 +691,79 @@ sub next_pending {
 	}
 
 	if($type eq 'Channel::Close') {
-		$self->debug_printf("Channel was %d, calling close", $frame->channel);
+		$self->debug_printf(
+			"Channel was %d, calling close - code %d, text '%s', class:method %d:%d",
+			$frame->channel,
+			$method_frame->reply_code,
+			$method_frame->reply_text,
+			$method_frame->class_id,
+			$method_frame->method_id,
+		);
 		$self->on_close(
 			$method_frame
 		);
+		return $self;
+	}
+
+	# Confirm mode => mark pending task as done
+	if($type eq 'Confirm::SelectOk') {
+		$self->debug_printf("Confirm mode enabled");
+		$self->{confirm_mode}->done;
+		return $self;
+	} elsif($type eq 'Basic::Ack') {
+		shift @{$self->{pending}{'Basic::Return'} || []};
+		eval {
+			my @msg = $self->extract_published($method_frame->delivery_tag, $method_frame->multiple);
+			$self->debug_printf("received ack for %d messages", 0 + @msg);
+			$_->done for grep !$_->is_ready, map $_->[1], @msg;
+			1
+		} or do {
+			my $err = $@;
+			$self->debug_printf("error retrieving messages for ack - %s", $err);
+			$self->close(
+				code => 406,
+				text => $err
+			);
+		};
+		return $self;
+	} elsif($type eq 'Basic::Nack') {
+		shift @{$self->{pending}{'Basic::Return'} || []};
+		eval {
+			my @msg = $self->extract_published($method_frame->delivery_tag, $method_frame->multiple);
+			$self->debug_printf("received nack for %d messages", 0 + @msg);
+			$_->fail('nack') for grep !$_->is_ready, map $_->[1], @msg;
+			1
+		} or do {
+			my $err = $@;
+			$self->debug_printf("error retrieving messages for nack - %s", $err);
+			$self->close(
+				code => 406,
+				text => $err
+			);
+		};
+		return $self;
+	} elsif($type eq 'Basic::Return') {
+		# Basic::Return would always be for the first unacked message in our publish
+		# queue... except when we don't have publisher confirms, in which case... uh...
+		# okay in that case we'd just raise an event maybe
+		if($self->{confirm_mode}) {
+			$self->debug_printf("basic::return in confirm mode");
+			my $f = $self->{published}[0][1];
+			$f->fail(
+				$method_frame->reply_text,
+				code     => $method_frame->reply_code,
+				exchange => $method_frame->exchange,
+				rkey     => $method_frame->routing_key
+			) if $f && !$f->is_ready;
+		} else {
+			$self->debug_printf("basic::return in normal mode");
+			$self->bus->invoke_event(
+				return => $method_frame->reply_text,
+				code     => $method_frame->reply_code,
+				exchange => $method_frame->exchange,
+				rkey     => $method_frame->routing_key
+			)
+		}
 		return $self;
 	}
 
