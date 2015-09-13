@@ -96,17 +96,35 @@ sub confirm_mode {
 	$self->debug_printf("Enabling confirm mode");
 
 	my $f = $self->loop->new_future;
+	my $nowait = $self->nowait_from_args(%args);
 	my $frame = Net::AMQP::Frame::Method->new(
 		method_frame => Net::AMQP::Protocol::Confirm::Select->new(
-			nowait      => 0,
+			nowait => $nowait,
 		)
 	);
-	$self->push_pending(
-		'Confirm::SelectOk' => [ $f, $self ]
-	);
-	$self->closure_protection($f);
+
+	# No-wait mode means we don't expect the SelectOk frame back
+	if($nowait) {
+		$f->done
+	} else {
+		$self->closure_protection($f);
+	}
 	$self->send_frame($frame);
-	return $f;
+	return $f->transform(done => sub { $self });
+}
+
+=head2 nowait_from_args
+
+If we have a C<wait> argument, then return the inverse of that.
+
+Otherwise, return zero.
+
+=cut
+
+sub nowait_from_args {
+	my ($self, %args) = @_;
+	return 0 unless exists $args{wait};
+	return $args{wait} ? 0 : 1;
 }
 
 =head2 exchange_declare
