@@ -209,6 +209,7 @@ sub request_channel {
 	# Apply our QoS on the channel if we ever get one
 	return $f->then(sub {
 		my $ch = shift;
+		die "no channel provided?" unless $ch;
 		call {
 			$ch->bus->subscribe_to_event(
 				close => $self->curry::weak::on_channel_close($ch),
