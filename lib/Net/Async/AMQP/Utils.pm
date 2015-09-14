@@ -25,11 +25,11 @@ our @EXPORT_OK = our @EXPORT = qw(
 my %extra = (
 	'Connection::Start' => sub {
 		sprintf 'AMQP %d.%d, { %s }, auth "%s", locales "%s"',
-			$_->version_major, 
-			$_->version_minor, 
-			join(', ', map { $_ . ' = "' . $_[0]->server_properties->{$_} . '"' } keys %{$_->server_properties}),
-			$_->mechanisms,
-			$_->locales
+			$_->version_major // 0,
+			$_->version_minor // 0,
+			join(', ', map { $_ . ' = "' . ($_[0]->server_properties->{$_} // '') . '"' } keys %{$_->server_properties}),
+			$_->mechanisms // '',
+			$_->locales // ''
 	},
 	'Connection::StartOk' => sub {
 		sprintf '{ %s }, auth "%s", response "%s", locale "%s"',
