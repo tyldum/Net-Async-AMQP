@@ -85,6 +85,9 @@ if you want any of these:
 
 =back
 
+This implementation is designed to handle many simultaneous channels and connections. If you just want a
+single consumer/publisher, one of the librabbitmq-c implementations may be sufficient.
+
 =cut
 
 use Net::AMQP;
