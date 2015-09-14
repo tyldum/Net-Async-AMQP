@@ -16,7 +16,7 @@ use Net::Async::AMQP::Utils;
 			locale            => 'en_GB',
 		),
 	);
-	is(amqp_frame_info($frame), 'Connection::Start');
+	like(amqp_frame_info($frame), qr/^Connection::Start/);
 }
 
 done_testing;
