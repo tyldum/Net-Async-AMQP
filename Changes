@@ -1,12 +1,20 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	API changes: The close events now use 'code' and 'reason' more consistently - previously the
+	code had reply_code / message in some places. Please verify that you have
+
 	Features:
 	* Queue declare now resolves with number of messages and consumers as well
 	as the queue instance.
+	* Futures are now labelled for easier tracing
+	* amqp_frame_info() provides more information on known frame types
+	* Net::Async::AMQP::Queue now has a ->consumer wrapper, which is slightly more
+	userfriendly than the ->listen method.
 
 	Bugs fixed:
-	* Some connection handling issues
+	* Various connection handling issues when client/server close a channel or the
+	entire connection.
 
 	Also updated the list of alternative AMQP implementations.
 
