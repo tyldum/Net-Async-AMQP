@@ -396,7 +396,7 @@ sub on_closed {
 	my $reason = shift // 'unknown';
 	$self->debug_printf("Connection closed [%s]", $reason);
 
-	for my $ch (values %{$self->{channel_by_id}}) {
+	for my $ch (grep $_, values %{$self->{channel_by_id}}) {
 		$ch->bus->invoke_event(
 			'close',
 			code    => undef,
