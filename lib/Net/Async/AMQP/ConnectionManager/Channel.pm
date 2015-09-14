@@ -41,8 +41,9 @@ sub new {
 	);
 
 	$self->{cleanup}{events} = sub {
-		shift->bus->unsubscribe_from_event(splice @ev);
-		Future->wrap;
+		my $ch = shift;
+		$ch->bus->unsubscribe_from_event(splice @ev);
+		Future->done;
 	};
 	$self
 }
@@ -191,13 +192,15 @@ sub DESTROY {
 		return $conman->release_channel($ch);
 	}
 
+	return unless $self->{channel};
+
 	my $f;
 	my $cleanup = delete $self->{cleanup};
 	$f = (
 		fmap_void {
 			my $k = shift;
 			my $task = delete $cleanup->{$k};
-			$task ? $task->($self) : Future->wrap
+			$task ? $task->($self) : Future->done
 		} foreach => [
 			sort keys %$cleanup
 		]
