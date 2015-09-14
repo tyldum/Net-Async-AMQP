@@ -38,6 +38,7 @@ my %WriteMakefileArgs = (
     "parent" => 0
   },
   "TEST_REQUIRES" => {
+    "ExtUtils::MakeMaker" => 0,
     "File::Spec" => 0,
     "IO::Handle" => 0,
     "IPC::Open3" => 0,
@@ -47,7 +48,7 @@ my %WriteMakefileArgs = (
     "Test::More" => "0.98",
     "Test::Refcount" => "0.07"
   },
-  "VERSION" => "0.031",
+  "VERSION" => "1.000",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -56,6 +57,7 @@ my %WriteMakefileArgs = (
 
 my %FallbackPrereqs = (
   "Class::ISA" => 0,
+  "ExtUtils::MakeMaker" => 0,
   "File::ShareDir" => 0,
   "File::Spec" => 0,
   "Future" => "0.30",

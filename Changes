@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+1.000     2015-09-14 02:21:19+01:00 Europe/London
 	API changes: The close events now use 'code' and 'reason' more consistently - previously the
 	code had reply_code / message in some places. This may affect any "close" event
 	handlers in existing code (for channels or connections).
