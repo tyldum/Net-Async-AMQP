@@ -161,6 +161,51 @@ sub cancel {
 	}));
 }
 
+=head2 consumer
+
+Similar to L</listen>, but applies the event handlers so you can just provide an C<on_message> callback.
+
+Takes the following extra named parameters:
+
+=over 4
+
+=item * on_message - callback for message handling
+
+=item * on_cancel - will be called if the consumer is cancelled (either by the server or client)
+
+=back
+
+For server consumer cancellation notification, you'll need consumer_cancel_notifications:
+
+ $mq->connect(
+  ...
+  client_properties => {
+   capabilities => {
+    'consumer_cancel_notify' => Net::AMQP::Value->true
+   },
+  },
+ )
+
+The on_message callback receives the following named parameters:
+
+=over 4
+
+=item * type
+
+=item * payload
+
+=item * consumer_tag
+
+=item * delivery_tag
+
+=item * routing_key 
+
+=back
+
+See C<examples/alternative-consumer.pl> for a usage example.
+
+=cut
+
 sub consumer {
     my ($self, %args) = @_;
 
