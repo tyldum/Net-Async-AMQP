@@ -332,10 +332,8 @@ sub publish {
 			timestamp        => $args{timestamp} // time,
 			type             => Net::AMQP::Value::String->new($args{type} // ''),
 			user_id          => $self->amqp->user,
-#            headers          => {
-#                type => $args{type},
-#            },
-			delivery_mode    => 1,
+            headers          => $args{headers} || { },
+			delivery_mode    => $args{delivery_mode} // 1,
 			priority         => $args{priority} // 1,
 			correlation_id   => undef,
 			expiration       => (
