@@ -343,10 +343,11 @@ sub publish {
 				? Net::AMQP::Value::String->new($args{expiration})
 				: undef
 			),
-			message_id       => undef,
-			app_id           => undef,
-			cluster_id       => undef,
-			weight           => 0,
+			message_id       => $args{message_id},
+			app_id           => $args{app_id},
+			cluster_id       => $args{cluster_id},
+			reply_to         => $args{reply_to},
+			weight           => $args{weight} // 0,
 		);
 		$self->closure_protection($f);
 		$self->send_frame(
