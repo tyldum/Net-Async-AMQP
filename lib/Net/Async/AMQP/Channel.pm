@@ -302,6 +302,10 @@ fail messages sent to an exchange that do not have an appropriate binding)
 
 =item * priority - defaults to undef (none), use this to take advantage of RabbitMQ 3.5+ priority support
 
+=item * reply_to - which queue to reply to (used for RPC, default undef)
+
+=item * correlation_id - unique message ID (used for RPC, default undef)
+
 =back
 
 =cut
@@ -335,7 +339,7 @@ sub publish {
             headers          => $args{headers} || { },
 			delivery_mode    => $args{delivery_mode} // 1,
 			priority         => $args{priority} // 1,
-			correlation_id   => undef,
+			correlation_id   => $args{correlation_id},
 			expiration       => (
 				exists $args{expiration}
 				# This would seem to make more sense as a numeric value, but the spec
