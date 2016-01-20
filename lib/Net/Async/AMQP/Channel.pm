@@ -622,8 +622,12 @@ sub next_pending {
 			eval {
 				$self->{incoming_message}{type} = $frame->header_frame->headers->{type}
 					if exists $frame->header_frame->headers->{type};
+				# Shallow copy for local storage
+				$self->{incoming_message}{headers} = { %{$frame->header_frame->headers} };
 				1
 			} or $self->debug_printf("Unexpected exception while doing something: %s", $@);
+		} else {
+			$self->{incoming_message}{headers} = {};
 		}
 
 		# Messages may be empty - in this case we'd have no body frames at all, we're done already:
@@ -631,7 +635,7 @@ sub next_pending {
 			$self->{incoming_message}{pending} = $frame->body_size;
 		} else {
 			$self->bus->invoke_event(
-				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
+				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers)},
 			);
 			delete $self->{incoming_message};
 		}
