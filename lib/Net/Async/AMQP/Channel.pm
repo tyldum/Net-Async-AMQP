@@ -306,6 +306,8 @@ fail messages sent to an exchange that do not have an appropriate binding)
 
 =item * correlation_id - unique message ID (used for RPC, default undef)
 
+=item * delivery_mode - whether to persist message (default 1, don't persist - set to 2 for persistent, see also "durable" flag for queues)
+
 =back
 
 =cut
