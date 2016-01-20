@@ -1,7 +1,7 @@
 requires 'parent', 0;
 requires 'curry', 0;
 requires 'Future', '>= 0.30';
-requires 'Mixin::Event::Dispatch', '>= 1.006';
+requires 'Mixin::Event::Dispatch', '>= 2.000';
 requires 'IO::Async', '>= 0.63';
 requires 'Net::AMQP', '>= 0.06';
 requires 'Class::ISA', 0;
@@ -13,6 +13,8 @@ requires 'List::UtilsBy', 0;
 requires 'Variable::Disposition', '>= 0.004';
 
 recommends 'IO::Async::SSL', 0;
+
+suggests 'UUID::Tiny', 0;
 
 on 'test' => sub {
 	requires 'Test::More', '>= 0.98';
