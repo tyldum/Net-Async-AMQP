@@ -302,6 +302,12 @@ fail messages sent to an exchange that do not have an appropriate binding)
 
 =item * priority - defaults to undef (none), use this to take advantage of RabbitMQ 3.5+ priority support
 
+=item * reply_to - which queue to reply to (used for RPC, default undef)
+
+=item * correlation_id - unique message ID (used for RPC, default undef)
+
+=item * delivery_mode - whether to persist message (default 1, don't persist - set to 2 for persistent, see also "durable" flag for queues)
+
 =back
 
 =cut
@@ -332,12 +338,10 @@ sub publish {
 			timestamp        => $args{timestamp} // time,
 			type             => Net::AMQP::Value::String->new($args{type} // ''),
 			user_id          => $self->amqp->user,
-#            headers          => {
-#                type => $args{type},
-#            },
-			delivery_mode    => 1,
+            headers          => $args{headers} || { },
+			delivery_mode    => $args{delivery_mode} // 1,
 			priority         => $args{priority} // 1,
-			correlation_id   => undef,
+			correlation_id   => $args{correlation_id},
 			expiration       => (
 				exists $args{expiration}
 				# This would seem to make more sense as a numeric value, but the spec
@@ -345,10 +349,11 @@ sub publish {
 				? Net::AMQP::Value::String->new($args{expiration})
 				: undef
 			),
-			message_id       => undef,
-			app_id           => undef,
-			cluster_id       => undef,
-			weight           => 0,
+			message_id       => $args{message_id},
+			app_id           => $args{app_id},
+			cluster_id       => $args{cluster_id},
+			reply_to         => $args{reply_to},
+			weight           => $args{weight} // 0,
 		);
 		$self->closure_protection($f);
 		$self->send_frame(
@@ -617,8 +622,12 @@ sub next_pending {
 			eval {
 				$self->{incoming_message}{type} = $frame->header_frame->headers->{type}
 					if exists $frame->header_frame->headers->{type};
+				# Shallow copy for local storage
+				$self->{incoming_message}{headers} = { %{$frame->header_frame->headers} };
 				1
 			} or $self->debug_printf("Unexpected exception while doing something: %s", $@);
+		} else {
+			$self->{incoming_message}{headers} = {};
 		}
 
 		# Messages may be empty - in this case we'd have no body frames at all, we're done already:
@@ -626,7 +635,7 @@ sub next_pending {
 			$self->{incoming_message}{pending} = $frame->body_size;
 		} else {
 			$self->bus->invoke_event(
-				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
+				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers)},
 			);
 			delete $self->{incoming_message};
 		}
@@ -652,7 +661,7 @@ sub next_pending {
 		} else {
 			# We have a full message now - hand it over to the event bus
 			$self->bus->invoke_event(
-				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
+				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers)},
 			);
 			delete $self->{incoming_message};
 			return $self;
