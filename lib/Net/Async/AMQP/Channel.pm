@@ -622,6 +622,24 @@ sub next_pending {
 			eval {
 				$self->{incoming_message}{type} = $frame->header_frame->headers->{type}
 					if exists $frame->header_frame->headers->{type};
+				$self->{incoming_message}{properties} = {
+					map {; $_ => $frame->$_ } qw(
+						content_type 
+						content_encoding
+						headers
+						delivery_mode
+						priority
+						correlation_id
+						reply_to
+						expiration
+						message_id
+						timestamp
+						type
+						user_id
+						app_id
+						cluster_id
+					)
+				};
 				# Shallow copy for local storage
 				$self->{incoming_message}{headers} = { %{$frame->header_frame->headers} };
 				1
@@ -635,7 +653,7 @@ sub next_pending {
 			$self->{incoming_message}{pending} = $frame->body_size;
 		} else {
 			$self->bus->invoke_event(
-				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers)},
+				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers properties)},
 			);
 			delete $self->{incoming_message};
 		}
