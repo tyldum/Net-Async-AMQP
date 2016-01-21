@@ -5,11 +5,28 @@ use warnings;
 
 use parent qw(IO::Async::Notifier);
 
+=head1 NAME
+
+Net::Async::AMQP::RPC::Base - base class for client and server RPC handling
+
+=head1 DESCRIPTION
+
+This is used internally by L<Net::Async::AMQP::RPC::Server> and 
+L<Net::Async::AMQP::RPC::Client>, see those classes for details.
+
+=cut
+
 use Net::Async::AMQP;
 
 use Variable::Disposition qw(retain_future);
 use Log::Any qw($log);
 use Scalar::Util ();
+
+=head2 mq
+
+Returns the L<Net::Async::AMQP> instance.
+
+=cut
 
 sub mq {
 	my $self = shift;
@@ -33,17 +50,48 @@ sub mq {
 	$mq
 }
 
+=head2 queue_name
+
+Returns a L<Future> which resolves to the queue name once the queue has been declared.
+
+=cut
+
 sub queue_name {
 	$_[0]->{queue_name} ||= $_[0]->future(set_label => 'queue name')->on_done(sub {
 		$log->infof("Queue name is %s", shift);
 	})
 }
 
+=head2 routing_key
+
+The routing key used for publishing. Defaults to the empty string.
+
+=cut
+
 sub routing_key { '' }
+
+=head2 exchange
+
+The exchange messages should be published to (or queues bound to).
+
+=cut
 
 sub exchange { shift->{exchange} }
 
+=head2 future
+
+Helper method for instantiating a L<Future>.
+
+=cut
+
 sub future { my $self = shift; $self->mq->future(@_) }
+
+=head2 _add_to_loop
+
+Called when this instance is added to a L<IO::Async::Loop>. Requires both an
+L</mq> instance and a valid L</exchange> name.
+
+=cut
 
 sub _add_to_loop {
 	my ($self, $loop) = @_;
@@ -62,7 +110,20 @@ sub _add_to_loop {
 	)
 }
 
+=head2 connected
+
+Returns a L<Future> which resolves once the underlying L<Net::Async::AMQP> connection
+is established.
+
+=cut
+
 sub connected { shift->mq->connected }
+
+=head2 client_queue
+
+Sets up a queue for an RPC client.
+
+=cut
 
 sub client_queue {
 	my $self = shift;
@@ -80,6 +141,12 @@ sub client_queue {
 		$log->errorf("Failed to set up client queue: %s", shift)
 	})
 }
+
+=head2 server_queue
+
+Sets up a queue for an RPC server.
+
+=cut
 
 sub server_queue {
 	my $self = shift;
@@ -111,20 +178,52 @@ sub server_queue {
 	})
 }
 
+=head2 reply
+
+Publishes a reply to an RPC message.
+
+Expects the following:
+
+=over 4
+
+=item * reply_to - which queue to deliver to
+
+=item * correlation_id - the ID to use for this message
+
+=item * type - message type
+
+=item * payload - message content
+
+=item * content_type - what's in the message
+
+=item * content_encoding - any encoding layers
+
+=back
+
+=cut
+
 sub reply {
 	my ($self, %args) = @_;
 	$self->publisher_channel->then(sub {
 		my ($ch) = @_;
 		$ch->publish(
-			exchange       => '',
-			routing_key    => $args{reply_to},
-			delivery_mode  => 2, # persistent
-			correlation_id => $args{correlation_id},
-			type           => $args{type},
-			payload        => $args{payload},
+			exchange         => '',
+			routing_key      => $args{reply_to},
+			delivery_mode    => 2, # persistent
+			correlation_id   => $args{correlation_id},
+			type             => $args{type},
+			payload          => $args{payload},
+			content_type     => $args{content_type} // 'application/binary',
+			content_encoding => $args{content_encoding},
 		)
 	});
 }
+
+=head2 consumer
+
+Activates a consumer. Resolves when the consumer is running.
+
+=cut
 
 sub consumer {
 	my $self = shift;
@@ -143,6 +242,12 @@ sub consumer {
 		$log->errorf("Failed to set up consumer: %s", shift)
 	})
 }
+
+=head2 on_message
+
+Called when there's a message. Receives the channel and some named parameters. I'll document those in a few minutes.
+
+=cut
 
 sub on_message {
 	my ($self, $ch, %args) = @_;
@@ -204,4 +309,18 @@ sub configure {
 }
 
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Tom Molesworth <TEAM@cpan.org>
+
+=head1 LICENSE
+
+Licensed under the same terms as Perl itself, with additional licensing
+terms for the MQ spec to be found in C<share/amqp0-9-1.extended.xml>
+('a worldwide, perpetual, royalty-free, nontransferable, nonexclusive
+license to (i) copy, display, distribute and implement the Advanced
+Messaging Queue Protocol ("AMQP") Specification').
 

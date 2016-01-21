@@ -5,7 +5,13 @@ use warnings;
 
 use parent qw(Net::Async::AMQP::RPC::Base);
 
-=pod
+=head1 NAME
+
+Net::Async::AMQP::RPC::Server - server RPC handling
+
+=head1 DESCRIPTION
+
+Provides a server implementation for RPC handling.
 
 =over 4
 
@@ -97,4 +103,18 @@ sub configure {
 }
 
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Tom Molesworth <TEAM@cpan.org>
+
+=head1 LICENSE
+
+Licensed under the same terms as Perl itself, with additional licensing
+terms for the MQ spec to be found in C<share/amqp0-9-1.extended.xml>
+('a worldwide, perpetual, royalty-free, nontransferable, nonexclusive
+license to (i) copy, display, distribute and implement the Advanced
+Messaging Queue Protocol ("AMQP") Specification').
 
