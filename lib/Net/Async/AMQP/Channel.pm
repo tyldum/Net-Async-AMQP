@@ -684,7 +684,7 @@ sub next_pending {
 	if($type eq 'Basic::ConsumeOk') {
 		my $ctag = $method_frame->consumer_tag;
 		$self->{consumer_tags}{$ctag} = 1;
-	} elsif($type eq 'Basic::Cancel') {
+	} elsif($type eq 'Basic::Cancel' or $type eq 'Basic::CancelOk') {
 		my ($ctag) = ($method_frame->consumer_tag);
 		$self->debug_printf("Cancel $ctag");
 		$self->bus->invoke_event(
