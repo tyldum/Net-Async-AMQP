@@ -623,7 +623,6 @@ sub next_pending {
 			map {; $_ => scalar($hdr_frame->$_) } qw(
 				content_type 
 				content_encoding
-				headers
 				delivery_mode
 				priority
 				correlation_id
