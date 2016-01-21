@@ -11,10 +11,15 @@ requires 'IO::Socket::IP', 0;
 requires 'Time::HiRes', 0;
 requires 'List::UtilsBy', 0;
 requires 'Variable::Disposition', '>= 0.004';
+requires 'Log::Any', '>= 1.032';
+requires 'Log::Any::Adapter', '>= 1.032';
 
 recommends 'IO::Async::SSL', 0;
 
-suggests 'UUID::Tiny', 0;
+feature 'rpc', 'RPC Client/server support' => sub {
+	requires 'UUID::Tiny', 0;
+	recommends 'JSON::MaybeXS', 0;
+};
 
 on 'test' => sub {
 	requires 'Test::More', '>= 0.98';
