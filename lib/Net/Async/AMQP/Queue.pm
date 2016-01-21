@@ -192,13 +192,46 @@ The on_message callback receives the following named parameters:
 
 =item * type
 
-=item * payload
+=item * payload - scalar containing the raw binary data for this message
 
-=item * consumer_tag
+=item * consumer_tag - which consumer tag received this message
 
-=item * delivery_tag
+=item * delivery_tag - the delivery information for L<Net::Async::AMQP::Channel/ack>
 
-=item * routing_key 
+=item * routing_key - routing key used for this message
+
+=item * properties - any properties for the message
+
+=item * headers - custom headers
+
+=back
+
+Properties include:
+
+=over 4
+
+=item * correlation_id - user-specified ID that can be used to link related messages, see
+L<Net::Async::RPC::Client> for details.
+
+=item * reply_to - user-specified target queue to which any replies should be sent
+
+=item * content_type - payload format
+
+=item * content_encoding - any encoding applied to the payload (gzip etc.)
+
+=item * delivery_mode - delivery persistence - 1 for default, 2 for permanent
+
+=item * priority - message priority, ranges from 0..255
+
+=item * expiration - when this message (would have) expired
+
+=item * message_id - user-specified ID
+
+=item * timestamp - when the message was published, usually the time in seconds
+
+=item * user_id - custom user-id info
+
+=item * app_id - user-specified application information
 
 =back
 

@@ -1,6 +1,13 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+	Features:
+	* RPC server/client implementation, should be compatible with
+	http://www.rabbitmq.com/tutorials/tutorial-six-python.html
+	* Connection blocked support
+	* Custom headers and delivery mode
+	* Correlation and reply_to fields are available in ->publish and also passed to
+	the consumer via the {properties} information
 
 1.000     2015-09-14 02:21:19+01:00 Europe/London
 	API changes: The close events now use 'code' and 'reason' more consistently - previously the
