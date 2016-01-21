@@ -218,14 +218,16 @@ sub consumer {
 		@ev = (
 			# Deliver any matching messages to our callback
 			message => sub {
-				my ($ev, $type, $payload, $incoming_ctag, $dtag, $rkey) = @_;
+				my ($ev, $type, $payload, $incoming_ctag, $dtag, $rkey, $headers, $properties) = @_;
 				return unless $incoming_ctag eq $ctag;
 				$on_message->(
 					type => $type,
 					payload => $payload,
 					consumer_tag => $ctag,
 					delivery_tag => $dtag,
-					routing_key => $rkey
+					routing_key => $rkey,
+					headers => $headers,
+					properties => $properties,
 				);
 			},
 			# Drop event handlers and call cancellation callback on cancel

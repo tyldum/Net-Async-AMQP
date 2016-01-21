@@ -616,30 +616,29 @@ sub next_pending {
 	# First part of a frame. There's more to come, so stash a new future
 	# and return.
 	if($frame->isa('Net::AMQP::Frame::Header')) {
-		# Start with empty payload
-		$self->{incoming_message}{type} = $frame->header_frame->type;
+		# Properties are available directly from the header frame
+		my $hdr_frame = $frame->header_frame;
+		$self->{incoming_message}{type} = $hdr_frame->type;
+		$self->{incoming_message}{properties} = {
+			map {; $_ => scalar($hdr_frame->$_) } qw(
+				content_type 
+				content_encoding
+				headers
+				delivery_mode
+				priority
+				correlation_id
+				reply_to
+				expiration
+				message_id
+				timestamp
+				user_id
+				app_id
+			)
+		};
 		if($frame->header_frame->headers) {
 			eval {
-				$self->{incoming_message}{type} = $frame->header_frame->headers->{type}
-					if exists $frame->header_frame->headers->{type};
-				$self->{incoming_message}{properties} = {
-					map {; $_ => $frame->$_ } qw(
-						content_type 
-						content_encoding
-						headers
-						delivery_mode
-						priority
-						correlation_id
-						reply_to
-						expiration
-						message_id
-						timestamp
-						type
-						user_id
-						app_id
-						cluster_id
-					)
-				};
+				#$self->{incoming_message}{type} = $frame->header_frame->headers->{type}
+				#	if exists $frame->header_frame->headers->{type};
 				# Shallow copy for local storage
 				$self->{incoming_message}{headers} = { %{$frame->header_frame->headers} };
 				1
@@ -648,14 +647,12 @@ sub next_pending {
 			$self->{incoming_message}{headers} = {};
 		}
 
-		# Messages may be empty - in this case we'd have no body frames at all, we're done already:
 		if($frame->body_size) {
+			# Stash the size so we can do some basic validation on the payload frames
 			$self->{incoming_message}{pending} = $frame->body_size;
 		} else {
-			$self->bus->invoke_event(
-				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers properties)},
-			);
-			delete $self->{incoming_message};
+			# Messages may be empty - in this case we'd have no body frames at all, we're done already:
+			$self->deliver_current_message;
 		}
 
 		return $self;
@@ -678,10 +675,7 @@ sub next_pending {
 			return $self;
 		} else {
 			# We have a full message now - hand it over to the event bus
-			$self->bus->invoke_event(
-				message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey)},
-			);
-			delete $self->{incoming_message};
+			$self->deliver_current_message;
 			return $self;
 		}
 	}
@@ -813,6 +807,14 @@ sub next_pending {
 	# the server. We don't expect many so report them when in debug mode.
 	$self->debug_printf("We had no pending handlers for [%s]", $type);
 	return $self;
+}
+
+sub deliver_current_message {
+	my $self = shift;
+	$self->bus->invoke_event(
+		message => @{$self->{incoming_message}}{qw(type payload ctag dtag rkey headers properties)},
+	);
+	delete $self->{incoming_message};
 }
 
 sub extract_published {
