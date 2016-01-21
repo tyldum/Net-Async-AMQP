@@ -547,10 +547,23 @@ sub setup_connection {
 			my ($self, $frame) = @_;
 			my $method_frame = $frame->method_frame;
 			$self->debug_printf("OpenOk received");
+			$self->connected->done;
 			$self->bus->invoke_event(connected =>);
 		}
 	);
 	$self
+}
+
+=head2 connected
+
+Returns a L<Future> which will resolve when the MQ connection is ready
+for use.
+
+=cut
+
+sub connected {
+	my ($self) = @_;
+	$self->{connected} ||= $self->future(set_label => 'MQ connection');
 }
 
 =head2 next_channel
@@ -1364,7 +1377,7 @@ specification into appropriate Perl methods and classes.
 
 =head1 AUTHOR
 
-Tom Molesworth <cpan@perlsite.co.uk>
+Tom Molesworth <TEAM@cpan.org>
 
 =head1 LICENSE
 
